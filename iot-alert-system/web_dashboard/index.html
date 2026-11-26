@@ -9,7 +9,10 @@
 <body>
   <main class="container">
     <header class="header">
-      <h1>Bảng Giám Sát Cảnh Báo IoT</h1>
+      <div>
+        <h1>Bảng Giám Sát Cảnh Báo IoT</h1>
+        <p class="subtitle">Kênh cảnh báo: Nhóm Telegram & Danh sách Email</p>
+      </div>
       <span id="statusBadge" class="badge badge-ok">BÌNH THƯỜNG</span>
     </header>
 
@@ -17,12 +20,12 @@
       <div class="card">
         <h2>DHT11 (Nhiệt / Ẩm)</h2>
         <p id="valTemp" class="metric">-- °C</p>
-        <small id="valHum">Độ ẩm: -- %</small>
+        <small id="valHum">Độ ẩm: -- % (Ngưỡng: ≥ 38°C)</small>
       </div>
       <div class="card">
         <h2>HC-SR04 (Siêu âm)</h2>
         <p id="valDist" class="metric">-- cm</p>
-        <small>Ngưỡng: &le; 15 cm</small>
+        <small>Ngưỡng: ≤ 15 cm</small>
       </div>
       <div class="card">
         <h2>HC-SR501 (Hồng ngoại)</h2>
@@ -30,15 +33,16 @@
         <small>Cảm biến chuyển động PIR</small>
       </div>
       <div class="card">
-        <h2>TTP223 &amp; Sound</h2>
+        <h2>Cảm biến Âm thanh</h2>
         <p id="valSound" class="metric">--</p>
-        <small id="valTouch">Chạm TTP223: Chưa chạm</small>
+        <small>Ngưỡng: ≥ 2500 (ADC)</small>
       </div>
     </section>
 
     <section class="controls">
       <button id="btnSimulateNormal" type="button">Trạng thái bình thường</button>
       <button id="btnSimulateAlert" type="button" class="danger">Giả lập cảnh báo</button>
+      <button id="btnTestHello" type="button" class="info">Test gửi "hello"</button>
     </section>
 
     <section class="logs">

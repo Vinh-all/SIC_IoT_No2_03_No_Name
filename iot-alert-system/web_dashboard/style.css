@@ -21,6 +21,13 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  gap: 12px;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-top: 4px;
 }
 
 .badge {
@@ -28,6 +35,7 @@ body {
   border-radius: 999px;
   font-weight: 700;
   font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .badge-ok {
@@ -68,6 +76,7 @@ body {
 
 .controls {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 20px;
 }
@@ -80,10 +89,19 @@ button {
   color: #f8fafc;
   cursor: pointer;
   font-weight: 600;
+  transition: opacity 0.15s ease;
+}
+
+button:hover {
+  opacity: 0.9;
 }
 
 button.danger {
   background: #dc2626;
+}
+
+button.info {
+  background: #0284c7;
 }
 
 .logs {
