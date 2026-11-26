@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IoT Multi-Channel Alert Monitor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h1>Bảng Giám Sát Cảnh Báo IoT</h1>
+      <span id="statusBadge" class="badge badge-ok">BÌNH THƯỜNG</span>
+    </header>
+
+    <section class="grid">
+      <div class="card">
+        <h2>DHT11 (Nhiệt / Ẩm)</h2>
+        <p id="valTemp" class="metric">-- °C</p>
+        <small id="valHum">Độ ẩm: -- %</small>
+      </div>
+      <div class="card">
+        <h2>HC-SR04 (Siêu âm)</h2>
+        <p id="valDist" class="metric">-- cm</p>
+        <small>Ngưỡng: &le; 15 cm</small>
+      </div>
+      <div class="card">
+        <h2>HC-SR501 (Hồng ngoại)</h2>
+        <p id="valPir" class="metric">Không có</p>
+        <small>Cảm biến chuyển động PIR</small>
+      </div>
+      <div class="card">
+        <h2>TTP223 &amp; Sound</h2>
+        <p id="valSound" class="metric">--</p>
+        <small id="valTouch">Chạm TTP223: Chưa chạm</small>
+      </div>
+    </section>
+
+    <section class="controls">
+      <button id="btnSimulateNormal" type="button">Trạng thái bình thường</button>
+      <button id="btnSimulateAlert" type="button" class="danger">Giả lập cảnh báo</button>
+    </section>
+
+    <section class="logs">
+      <h2>Nhật ký sự kiện</h2>
+      <ul id="logList"></ul>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

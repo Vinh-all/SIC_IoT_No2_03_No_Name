@@ -1,0 +1,111 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 24px;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.badge {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.badge-ok {
+  background: #14532d;
+  color: #86efac;
+}
+
+.badge-alert {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.card h2 {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.metric {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #334155;
+  color: #f8fafc;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button.danger {
+  background: #dc2626;
+}
+
+.logs {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.logs h2 {
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+#logList {
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+#logList li {
+  padding: 6px 0;
+  border-bottom: 1px solid #334155;
+  font-size: 0.9rem;
+}
