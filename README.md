@@ -236,7 +236,7 @@ cd E:\SMART_AIoT_SECURITY\backend
 
 ---
 ---
-## 7.3. Thiết bị thực hiện và sảm phẩm hoàn chỉnh
+## 7.3. Thiết bị thực hiện và nối mạch
 <img width="1280" height="722" alt="image" src="https://github.com/user-attachments/assets/f9eec60c-5a27-479b-9622-b8ad377bf03f" />
 <img width="1280" height="722" alt="image" src="https://github.com/user-attachments/assets/1da52492-04df-49aa-95cb-dc92d493024b" />
 <img width="1280" height="722" alt="image" src="https://github.com/user-attachments/assets/aaee7ae1-4f33-43ce-b3f2-e4ef7591abc6" />
