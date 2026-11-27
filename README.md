@@ -65,7 +65,6 @@ graph TD
 | **Truyền thông** | MQTT Protocol (Eclipse Mosquitto) | Mosquitto 2.0+, LWT (Last Will and Testament), QoS 0/1 |
 | **Backend** | Python / FastAPI / Pydantic | Python 3.10+, FastAPI, Pydantic v2, Paho-MQTT v2, Uvicorn (ASGI) |
 | **Cơ sở dữ liệu** | SQLite 3 | Chế độ Write-Ahead Logging (WAL), Ràng buộc Khóa ngoại (Foreign Keys), Chỉ mục kép |
-| **Trí tuệ nhân tạo** | Scikit-learn / NumPy / Pandas | Isolation Forest (100 estimators, contamination 0.05), StandardScaler 7 features |
 | **Frontend** | React 18 / Vite / Recharts | JavaScript JSX, Vite 5, Recharts, Lucide Icons, Axios, Dark Modern CSS |
 
 ---
@@ -149,8 +148,6 @@ SMART_AIoT_SECURITY/
 | Cảm biến / Chấp hành | Chân ESP32 | Mức điện áp | Ghi chú kỹ thuật an toàn |
 |:---|:---:|:---:|:---|
 | **DHT22** | **GPIO 4** | 3.3V | Cần trở kéo pull-up $10\text{k}\Omega$ lên 3.3V giữa DATA và VCC. |
-| **PIR HC-SR501** | **GPIO 27** | 3.3V (VCC 5V) | Cấp nguồn 5V, chân OUT xuất mức 3.3V (an toàn kết nối trực tiếp). |
-| **MQ-2 (Khí gas/Khói)** | **GPIO 34** | 0 - 3.3V (ADC1) | Chân Input-Only thuộc ADC1 (hoạt động ổn định khi bật Wi-Fi). |
 | **KY-037 (Âm thanh)** | **GPIO 35** | 0 - 3.3V (ADC1) | Chân Analog Out thuộc ADC1, đo biên độ Peak-to-Peak 50ms. |
 | **TTP223 (Chạm)** | **GPIO 32** | 3.3V | Cảm biến điện dung chống trộm tháo gỡ thiết bị. |
 | **HC-SR04 Trig** | **GPIO 26** | 3.3V | Xuất xung kích hoạt siêu âm 10µs. |
@@ -247,7 +244,7 @@ cd E:\SMART_AIoT_SECURITY\backend
 
 ---
 ---
-## 7.3. Kết quả và sảm phẩm kiểm thử hệ thống 
+## 7.3. Thiết bị thực hiện và sảm phẩm hoàn chỉnh
 <img width="1280" height="722" alt="image" src="https://github.com/user-attachments/assets/f9eec60c-5a27-479b-9622-b8ad377bf03f" />
 <img width="1280" height="722" alt="image" src="https://github.com/user-attachments/assets/1da52492-04df-49aa-95cb-dc92d493024b" />
 <img width="1280" height="722" alt="image" src="https://github.com/user-attachments/assets/aaee7ae1-4f33-43ce-b3f2-e4ef7591abc6" />
