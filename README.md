@@ -145,26 +145,18 @@ SMART_AIoT_SECURITY/
 
 ### Bảng phân bổ chân GPIO trên ESP32 DevKit V1:
 
-| Cảm biến / Chấp hành | Chân ESP32 | Mức điện áp | Ghi chú kỹ thuật an toàn |
-|:---|:---:|:---:|:---|
-| **DHT22** | **GPIO 4** | 3.3V | Cần trở kéo pull-up $10\text{k}\Omega$ lên 3.3V giữa DATA và VCC. |
-| **KY-037 (Âm thanh)** | **GPIO 35** | 0 - 3.3V (ADC1) | Chân Analog Out thuộc ADC1, đo biên độ Peak-to-Peak 50ms. |
-| **TTP223 (Chạm)** | **GPIO 32** | 3.3V | Cảm biến điện dung chống trộm tháo gỡ thiết bị. |
-| **HC-SR04 Trig** | **GPIO 26** | 3.3V | Xuất xung kích hoạt siêu âm 10µs. |
-| **HC-SR04 Echo** | **GPIO 25** | 3.3V | **Bắt buộc qua cầu phân áp $1\text{k}\Omega / 2\text{k}\Omega$ từ tín hiệu 5V xuống 3.3V**. |
-| **LED Đỏ (Cảnh báo)** | **GPIO 18** | 3.3V | Đèn báo nguy hiểm (Mắc nối tiếp trở hạn dòng $220\Omega - 330\Omega$). |
-| **LED Xanh (An toàn)**| **GPIO 19** | 3.3V | Đèn báo bình thường (Mắc nối tiếp trở hạn dòng $220\Omega - 330\Omega$). |
-| **Active Buzzer** | **GPIO 23** | 3.3V | Còi báo động (Kêu ngắt quãng 200ms khi có sự cố). |
-
-> [!CAUTION]
-> **Quy tắc an toàn phần cứng bắt buộc:**
-> 1. Vi điều khiển ESP32 chỉ hoạt động ở mức logic **3.3V**. Không đưa trực tiếp 5V vào bất kỳ chân GPIO nào.
-> 2. Chân Echo của HC-SR04 xuất mức 5V, **bắt buộc** phải dùng mạch chia áp:
->    $$\text{V}_{\text{ESP32}} = 5\text{V} \times \frac{2\text{k}\Omega}{1\text{k}\Omega + 2\text{k}\Omega} \approx 3.33\text{V}$$
-> 3. Toàn bộ thiết bị (ESP32, cảm biến, còi, nguồn ngoài) phải nối **Chung GND (Common Ground)**.
-> 4. Cảm biến MQ-2 cần sấy nóng tối thiểu 15 - 30 phút để giá trị đo đạt độ ổn định.
+| Thiết bị / Cảm biến | Chân linh kiện | Chân GPIO ESP32 | Chế độ & Đặc tính kỹ thuật |
+| :--- | :--- | :--- | :--- |
+| **Cảm biến Cửa từ (Reed Switch)** | `SIGNAL / PIN` | `GPIO 23` | **Hardware Interrupt (`IRAM_ATTR`)**, `INPUT_PULLUP`, phản hồi vi giây $< 1\text{ms}$ khi mở cửa. |
+| **Cảm biến Hồng ngoại PIR (HC-SR501)** | `OUT` | `GPIO 27` | **Hardware Interrupt (`IRAM_ATTR`)**, sườn `CHANGE`, phát hiện thân nhiệt chuyển động, debounce $150\text{ms}$. |
+| **Cảm biến Siêu âm (HC-SR04)** | `TRIG` | `GPIO 26` | Chân phát xung kích hoạt siêu âm $10\mu\text{s}$. |
+| **Cảm biến Siêu âm (HC-SR04)** | `ECHO` | `GPIO 25` | Chân thu xung phản hồi (**Lưu ý**: Dùng cầu phân áp $5\text{V} \to 3.3\text{V}$ bảo vệ GPIO ESP32). |
+| **LED Đỏ Cảnh Báo Nguy Hiểm** | `ANODE (+)` | `GPIO 18` | Bật sáng khi Cửa mở **HOẶC** khoảng cách $< 10\text{ cm}$. |
+| **LED Vàng Cảnh Báo Cự Ly Gần** | `ANODE (+)` | `GPIO 21` | Bật sáng khi Cửa đóng **VÀ** khoảng cách từ $10 - 30\text{ cm}$. |
+| **LED Xanh Khu Vực An Toàn** | `ANODE (+)` | `GPIO 19` | Bật sáng khi Cửa đóng **VÀ** khoảng cách $> 30\text{ cm}$. |
 
 ---
+
 
 ## 6. HƯỚNG DẪN CÀI ĐẶT & KHỞI CHẠY TỪNG THÀNH PHẦN
 
