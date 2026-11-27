@@ -71,62 +71,71 @@ graph TD
 ---
 
 ## 4. CẤU TRÚC THƯ MỤC DỰ ÁN
-
-```text
-E:\SMART_AIoT_SECURITY\
-├── README.md                      # Tài liệu tổng thể dự án (Master Guide)
-├── PROJECT_REPORT.md              # Báo cáo kỹ thuật tổng kết toàn diện dự án
-├── PROJECT_CONTEXT.md             # Tài liệu ngữ cảnh, quy ước phần cứng & dữ liệu
-├── PHASE_STATUS.md                # Bảng theo dõi tiến độ và biên bản nghiệm thu 8 giai đoạn
-├── CHANGELOG.md                   # Nhật ký lịch sử các phiên bản phát triển
-├── TEST_REPORT.md                 # Biên bản kiểm thử tích hợp toàn hệ thống (100% PASS)
-├── .gitignore                     # Cấu hình loại trừ tệp nhạy cảm và build
-├── .env.example                   # Mẫu cấu hình biến môi trường an toàn
+SMART_AIoT_SECURITY/
 │
-├── firmware/                      # Module Firmware vi điều khiển ESP32
-│   ├── platformio.ini             # Cấu hình biên dịch PlatformIO
-│   ├── README.md                  # Hướng dẫn đấu dây và nạp Firmware
-│   ├── include/
-│   │   ├── config.h               # Định nghĩa chân GPIO, chu kỳ đọc và ngưỡng
-│   │   ├── credentials.h.example  # Mẫu thông tin Wi-Fi và MQTT Broker
-│   │   └── credentials.h          # Thông tin mạng thật (không commit Git)
-│   └── src/
-│       ├── main.cpp               # Điểm khởi chạy non-blocking và xử lý lệnh
-│       ├── sensors/               # Drivers đọc và lọc tín hiệu 6 cảm biến
-│       ├── actuators/             # Điều khiển còi và LED chống rung nhiễu 3s
-│       └── network/               # Module Wi-Fi và MQTT Client tự phục hồi
+├── 📁 firmware/                         # [TẦNG BIÊN] Mã nguồn C++ nạp vào vi điều khiển ESP32
+│   ├── platformio.ini                   # Cấu hình biên dịch PlatformIO (ESP32 DevKit V1, PubSubClient, ArduinoJson)
+│   ├── README.md                        # Hướng dẫn nạp code và sơ đồ nối dây phần cứng
+│   ├── 📁 include/
+│   │   ├── config.h                     # Cấu hình chân GPIO, hằng số ngưỡng cự ly, Topics MQTT & struct SensorData
+│   │   └── credentials.h.example        # Mẫu điền SSID Wi-Fi và IP Mosquitto Broker của Raspberry Pi 5
+│   └── 📁 src/
+│       ├── main.cpp                     # Vòng lặp chính non-blocking, bộ điều phối Scheduler & xử lý ngắt phần cứng
+│       ├── 📁 sensors/                  # Module đọc cảm biến thời gian thực & ngắt phần cứng
+│       │   ├── door_sensor.h / .cpp     # Ngắt cảm biến Cửa từ (GPIO 23 INPUT_PULLUP, IRAM_ATTR < 1ms)
+│       │   ├── pir_sensor.h / .cpp      # Ngắt cảm biến Hồng ngoại PIR (GPIO 27, IRAM_ATTR, debounce 150ms)
+│       │   └── ultrasonic_sensor.h/.cpp # Cảm biến Khoảng cách Siêu âm HC-SR04 (Trig 26, Echo 25, lọc Median 5 mẫu)
+│       ├── 📁 actuators/                # Module cơ cấu chấp hành điều khiển thiết bị
+│       │   └── alarm_actuator.h / .cpp  # Logic điều khiển ưu tiên 3 LED thông minh: Đỏ (18), Vàng (21), Xanh (19)
+│       └── 📁 network/                  # Module truyền thông kết nối Raspberry Pi 5
+│           ├── wifi_module.h / .cpp     # Quản lý kết nối Wi-Fi & tự động phục hồi mạng ngầm
+│           └── mqtt_module.h / .cpp     # Giao tiếp MQTT Broker, di chúc Last Will (LWT) & publish dữ liệu định kỳ
 │
-├── backend/                       # Module Máy chủ Backend FastAPI & Dịch vụ AI
-│   ├── main.py                    # Điểm khởi chạy FastAPI, cấu hình CORS & Lifespan
-│   ├── requirements.txt           # Danh mục thư viện Python cần thiết
-│   ├── test_integration_e2e.py    # Bộ kiểm thử tích hợp 12 Test Cases
-│   ├── README.md                  # Hướng dẫn cài đặt và tài liệu REST API
-│   ├── .env.example               # Mẫu biến môi trường cho Backend
-│   └── app/
-│       ├── api/endpoints/         # 11 REST API endpoints chuẩn hóa
-│       ├── core/config.py         # Quản lý cấu hình tập trung và nạp .env
-│       ├── db/session.py          # Kết nối SQLite và thiết lập chế độ WAL
-│       ├── models/ & schemas/     # Mô hình dữ liệu và Pydantic Schemas
-│       └── services/              # MQTT Ingestion, SQLiteStorage, AI Isolation Forest
+├── 📁 backend/                          # [TẦNG MÁY CHỦ & AI] Dịch vụ Node.js Express & Học máy
+│   ├── server.js                        # Điểm khởi chạy HTTP Server (Cổng 8000) & kích hoạt MQTT Ingestion
+│   ├── package.json                     # Quản lý dependencies (express, mqtt, pg, cors, dotenv)
+│   ├── .env                             # Biến môi trường (kết nối PostgreSQL, Mosquitto Broker, cổng hệ thống)
+│   ├── .env.example                     # Mẫu cấu hình môi trường chuẩn
+│   ├── test_node_backend.js             # Bộ test tự động kiểm thử 6/6 ca kiểm thử backend đạt 100%
+│   ├── 📁 src/
+│   │   ├── config.js                    # Nạp và xác thực cấu hình hệ thống tập trung
+│   │   ├── db.js                        # Trình điều khiển CSDL kép: PostgreSQL (Chính) & SQLite (Dự phòng)
+│   │   ├── mqtt.js                      # Lắng nghe các topics MQTT từ Mosquitto Broker trên Raspberry Pi 5
+│   │   ├── ai.js                        # Thuật toán học máy Isolation Forest phát hiện dị thường an ninh đa chiều
+│   │   ├── storage.js                   # Tầng truy xuất dữ liệu CRUD (devices, sensor_logs, security_alerts)
+│   │   └── routes.js                    # Định tuyến 11 REST API endpoints cung cấp cho Frontend
+│   └── 📁 scripts/
+│       └── setup_postgres.js            # Script tự động khởi tạo bảng PostgreSQL & nạp dữ liệu chuẩn mẫu
 │
-├── database/                      # Module Cơ sở dữ liệu SQLite
-│   ├── schema.sql                 # Kịch bản DDL tạo 3 bảng chính và chỉ mục
-│   ├── security.db                # Tệp cơ sở dữ liệu SQLite vật lý
-│   └── README.md                  # Hướng dẫn truy vấn, sao lưu và bảo trì DB
+├── 📁 database/                         # [TẦNG CƠ SỞ DỮ LIỆU] Lược đồ & Dữ liệu lưu trữ
+│   ├── schema.postgres.sql              # DDL PostgreSQL (3 bảng: devices, sensor_logs, security_alerts + 4 Index)
+│   ├── schema.sql                       # DDL SQLite chuẩn dự phòng
+│   └── security.db                      # File CSDL SQLite cục bộ tự động đồng bộ khi cần
 │
-└── frontend/                      # Module Giao diện người dùng React & Vite
-    ├── index.html                 # HTML template gốc
-    ├── package.json               # Cấu hình gói và dependencies npm
-    ├── vite.config.js             # Cấu hình Vite Dev Server và API Proxy
-    ├── README.md                  # Hướng dẫn chạy và sử dụng Dashboard
-    └── src/
-        ├── App.jsx / App.css      # Điều phối giao diện, Smart Polling, Dark Theme
-        ├── services/api.js        # Lớp gọi REST API qua Axios
-        └── components/            # 8 Component giao diện chuyên biệt
-```
-
----
-
+├── 📁 frontend/                         # [TẦNG GIAO DIỆN] Web Dashboard React 18 + Vite (Cổng 3000)
+│   ├── index.html                       # Trang HTML gốc
+│   ├── vite.config.js                   # Cấu hình Vite & Proxy chuyển tiếp `/api` sang backend cổng 8000
+│   ├── package.json                     # Dependencies giao diện (react, recharts, lucide-react, axios)
+│   └── 📁 src/
+│       ├── App.jsx                      # Component gốc quản lý tabs, chu kỳ Polling & lưu theme localStorage
+│       ├── App.css                      # Biến CSS Theme (Sáng & Tối), bố cục responsive & thanh cuộn sidebar
+│       ├── main.jsx                     # Điểm gắn kết React DOM
+│       ├── 📁 components/
+│       │   ├── Header.jsx               # Thanh điều hướng, chọn thiết bị trạm & nút chuyển đổi Sáng / Tối
+│       │   ├── SmartMonitorView.jsx     # Màn hình giám sát 5 phụ kiện (Pi 5, ESP32, Cửa, PIR, Siêu âm, 3 LED)
+│       │   ├── SmartMonitorView.css     # Hiệu ứng 3D đèn LED phát sáng, thước đo cự ly & bảng mô phỏng tương tác
+│       │   ├── SensorCharts.jsx         # Biểu đồ chuỗi thời gian Recharts trực quan hóa xu hướng
+│       │   ├── SensorGrid.jsx           # Lưới hiển thị các thẻ cảm biến
+│       │   ├── SensorCard.jsx           # Thẻ hiển thị từng thông số đo đạc
+│       │   ├── AIAnomalySection.jsx     # Thước đo rủi ro và đánh giá dị thường từ mô hình AI
+│       │   ├── AlertsList.jsx           # Bảng danh sách nhật ký cảnh báo an ninh
+│       │   ├── DeviceList.jsx           # Bảng quản lý danh mục và trạng thái các trạm thiết bị
+│       │   └── HistoricalTable.jsx      # Bảng tra cứu lịch sử đo đạc cảm biến
+│       └── 📁 services/
+│           └── api.js                   # Các hàm gọi Axios HTTP REST API tới backend Node.js
+│
+├── README.md                            # Tài liệu tổng quan dự án, sơ đồ kiến trúc Mermaid & hướng dẫn cài đặt
+└── TEST_REPORT.md                       # Báo cáo kết quả kiểm thử toàn diện của hệ thống
 ## 5. SƠ ĐỒ KẾT NỐI PHẦN CỨNG & BẢNG GPIO
 
 ### Bảng phân bổ chân GPIO trên ESP32 DevKit V1:
