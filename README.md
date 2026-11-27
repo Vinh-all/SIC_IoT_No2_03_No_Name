@@ -28,7 +28,7 @@ Dự án kết hợp sức mạnh xử lý tín hiệu tại biên của vi đi�
 
 ```mermaid
 flowchart TD
-    subgraph Edge["Tầng Thiết Bị Ngoại Vi - ESP32 "]
+    subgraph Edge["Tầng Thiết Bị Ngoại Vi - ESP32 DevKit V1"]
         Door["Cảm biến Cửa từ (Reed Switch)<br/>GPIO 23 - Ngắt tức thì IRAM_ATTR"] -->|Ngắt phản hồi < 1ms| ESP["ESP32 Vi Điều Khiển<br/>(Non-blocking Scheduler)"]
         PIR["Cảm biến Hồng ngoại PIR (HC-SR501)<br/>GPIO 27 - Ngắt phần cứng IRAM_ATTR"] -->|Ngắt thân nhiệt chuyển động| ESP
         Sonic["Cảm biến Siêu âm (HC-SR04)<br/>GPIO 26 Trig / GPIO 25 Echo"] -->|Xung Echo lọc Median 5 mẫu| ESP
@@ -52,7 +52,7 @@ flowchart TD
     end
 
     subgraph Presentation["Tầng Giao Diện - React 18 & Vite Dashboard"]
-        API -->|REST API Proxy /api| UI["Dashboard React 18 :3000<br/>(Chuyển đổi Giao diện Tối)"]
+        API -->|REST API Proxy /api| UI["Dashboard React 18 :3000<br/>(Chuyển đổi Giao diện Sáng / Tối)"]
         UI --> Monitor["SmartMonitorView<br/>(Giám Sát 5 Phụ Kiện Thời Gian Thực)"]
         UI --> Charts["Bộ Biểu Đồ Recharts<br/>(Xu Hướng Khoảng Cách & Sự Kiện)"]
         UI --> History["Bảng Lịch Sử & Quản Lý Trạm Thiết Bị"]
