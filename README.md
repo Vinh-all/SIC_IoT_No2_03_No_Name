@@ -71,6 +71,8 @@ graph TD
 ---
 
 ## 4. CẤU TRÚC THƯ MỤC DỰ ÁN
+
+```text
 SMART_AIoT_SECURITY/
 │
 ├── 📁 firmware/                         # [TẦNG BIÊN] Mã nguồn C++ nạp vào vi điều khiển ESP32
@@ -136,6 +138,10 @@ SMART_AIoT_SECURITY/
 │
 ├── README.md                            # Tài liệu tổng quan dự án, sơ đồ kiến trúc Mermaid & hướng dẫn cài đặt
 └── TEST_REPORT.md                       # Báo cáo kết quả kiểm thử toàn diện của hệ thống
+```
+
+---
+
 ## 5. SƠ ĐỒ KẾT NỐI PHẦN CỨNG & BẢNG GPIO
 
 ### Bảng phân bổ chân GPIO trên ESP32 DevKit V1:
