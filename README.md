@@ -25,40 +25,37 @@ Dự án kết hợp sức mạnh xử lý tín hiệu tại biên của vi đi�
 
 ## 2. KIẾN TRÚC TỔNG THỂ HỆ THỐNG
 
+
 ```mermaid
-graph TD
-    subgraph Edge Layer [Tầng Thiết Bị Ngoại Vi - ESP32 DevKit V1]
-        DHT[DHT22 - Nhiệt & Ẩm] -->|GPIO 4| ESP[ESP32 Vi Điều Khiển]
-        PIR[PIR HC-SR501 - Chuyển động] -->|GPIO 27| ESP
-        MQ2[MQ-2 - Khí Gas / Khói] -->|GPIO 34 ADC1| ESP
-        Sound[KY-037 - Âm Thanh] -->|GPIO 35 ADC1| ESP
-        Touch[TTP223 - Chạm Chống Trộm] -->|GPIO 32| ESP
-        Sonic[HC-SR04 - Siêu Âm] -->|GPIO 26 Trig / 25 Echo| ESP
-        ESP -->|GPIO 18| LedRed[LED Đỏ Cảnh Báo]
-        ESP -->|GPIO 19| LedGreen[LED Xanh An Toàn]
-        ESP -->|GPIO 23| Buzzer[Còi Buzzer Báo Động]
+flowchart TD
+    subgraph Edge["Tầng Thiết Bị Ngoại Vi - ESP32 "]
+        Door["Cảm biến Cửa từ (Reed Switch)<br/>GPIO 23 - Ngắt tức thì IRAM_ATTR"] -->|Ngắt phản hồi < 1ms| ESP["ESP32 Vi Điều Khiển<br/>(Non-blocking Scheduler)"]
+        PIR["Cảm biến Hồng ngoại PIR (HC-SR501)<br/>GPIO 27 - Ngắt phần cứng IRAM_ATTR"] -->|Ngắt thân nhiệt chuyển động| ESP
+        Sonic["Cảm biến Siêu âm (HC-SR04)<br/>GPIO 26 Trig / GPIO 25 Echo"] -->|Xung Echo lọc Median 5 mẫu| ESP
+        ESP -->|Cửa mở HOẶC cự ly < 10cm| LedRed["LED Đỏ (GPIO 18)<br/>Cảnh Báo Nguy Hiểm"]
+        ESP -->|Cửa đóng & cự ly 10-30cm| LedYellow["LED Vàng (GPIO 21)<br/>Cảnh Báo Cự Ly Gần"]
+        ESP -->|Cửa đóng & cự ly > 30cm| LedGreen["LED Xanh (GPIO 19)<br/>Khu Vực An Toàn"]
     end
 
-    subgraph Transport Layer [Tầng Truyền Thông]
-        ESP -->|Wi-Fi 2.4GHz / MQTT QoS 0| Broker[Mosquitto MQTT Broker :1883]
-        Broker -->|Topics: sensors, status, alerts, command| Ingestion[Paho-MQTT Background Worker]
+    subgraph Transport["Tầng Truyền Thông - Raspberry Pi 5 Gateway"]
+        ESP -->|Wi-Fi 2.4GHz / TCP:1883| Broker["Mosquitto MQTT Broker :1883<br/>(Chạy trên Raspberry Pi 5)"]
+        Broker -->|Topics: aiot/security/{sensors, alerts, status, command}| Ingestion["MQTT Ingestion Service<br/>(Node.js MQTT Client)"]
     end
 
-    subgraph Core Layer [Tầng Xử Lý Trung Tâm - Python FastAPI]
-        Ingestion -->|Pydantic Schema Validation| Val{Kiểm Duyệt}
-        Val -->|Dữ Liệu Hợp Lệ| DB[(SQLite 3 - security.db WAL)]
-        Val -->|7 Đặc Trưng Số| AI[Isolation Forest ML Engine]
-        AI -->|Anomaly Score & Summary| AICache[Bộ Nhớ RAM Cache]
-        API[FastAPI REST API :8000] -->|Đọc Ghi| DB
-        API -->|Truy Vấn Tức Thời| AICache
+    subgraph Core["Tầng Xử Lý Trung Tâm - Node.js Backend & AI"]
+        Ingestion --> Val{"Kiểm Duyệt & Chuẩn Hóa"}
+        Val -->|Dữ Liệu Cảm Biến Hợp Lệ| DB[("Cơ Sở Dữ Liệu Kép<br/>PostgreSQL (Chính) & SQLite 3 (Dự phòng)")]
+        Val -->|Vector Đặc Trưng Số| AI["Isolation Forest ML Engine<br/>(Phát hiện dị thường đa chiều)"]
+        AI -->|Anomaly Score & Summary| AICache["Bộ Nhớ Đệm RAM / Cache"]
+        API["Express.js REST API :8000"] -->|Đọc / Ghi CSDL| DB
+        API -->|Truy Vấn Điểm AI Tức Thời| AICache
     end
 
-    subgraph Presentation Layer [Tầng Giao Diện - React 18 & Vite]
-        API -->|REST API Proxy /api| UI[Dashboard React 18 :3000]
-        UI --> Card[Lưới 7 Cảm Biến Thời Gian Thực]
-        UI --> Charts[Bộ 3 Biểu Đồ Recharts Xu Hướng]
-        UI --> AIScore[Thanh Đo Anomaly Score AI]
-        UI --> AlertTable[Phân Tách 2 Bảng Cảnh Báo]
+    subgraph Presentation["Tầng Giao Diện - React 18 & Vite Dashboard"]
+        API -->|REST API Proxy /api| UI["Dashboard React 18 :3000<br/>(Chuyển đổi Giao diện Tối)"]
+        UI --> Monitor["SmartMonitorView<br/>(Giám Sát 5 Phụ Kiện Thời Gian Thực)"]
+        UI --> Charts["Bộ Biểu Đồ Recharts<br/>(Xu Hướng Khoảng Cách & Sự Kiện)"]
+        UI --> History["Bảng Lịch Sử & Quản Lý Trạm Thiết Bị"]
     end
 ```
 
