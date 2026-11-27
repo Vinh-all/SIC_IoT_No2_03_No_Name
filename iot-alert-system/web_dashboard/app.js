@@ -5,6 +5,11 @@ const valDist = document.getElementById("valDist");
 const valPir = document.getElementById("valPir");
 const valSound = document.getElementById("valSound");
 const logList = document.getElementById("logList");
+const btnTestHello = document.getElementById("btnTestHello");
+
+// Tự lấy hostname hiện tại (hoạt động cả trên máy tính lẫn khi mở từ điện thoại qua IP LAN)
+const API_HOST = window.location.hostname || "127.0.0.1";
+const API_BASE_URL = `http://${API_HOST}:8000`;
 
 function addLog(text) {
   const li = document.createElement("li");
@@ -47,8 +52,30 @@ document.getElementById("btnSimulateAlert").addEventListener("click", () => {
   addLog("CẢNH BÁO: Quá nhiệt, vật thể gần, PIR & âm thanh vượt ngưỡng -> Đã gửi Nhóm Telegram & Email.");
 });
 
-document.getElementById("btnTestHello").addEventListener("click", () => {
-  addLog("TEST HELLO: Mô phỏng gửi tin nhắn 'hello' tới Nhóm Telegram và danh sách Email.");
+btnTestHello.addEventListener("click", async () => {
+  btnTestHello.disabled = true;
+  addLog("Đang gọi test_file.py để gửi 'hello' tới Telegram & Email...");
+
+  try {
+    const resp = await fetch(`${API_BASE_URL}/api/test-hello`, {
+      method: "POST",
+    });
+    const data = await resp.json();
+
+    const tg = data.results?.telegram;
+    const em = data.results?.email;
+
+    if (tg) {
+      addLog(tg.ok ? `[OK] ${tg.detail}` : `[ERR] ${tg.detail}`);
+    }
+    if (em) {
+      addLog(em.ok ? `[OK] ${em.detail}` : `[ERR] ${em.detail}`);
+    }
+  } catch (err) {
+    addLog(`[ERR] Không kết nối được tới API server (${API_BASE_URL}): ${err.message}`);
+  } finally {
+    btnTestHello.disabled = false;
+  }
 });
 
 renderState({ temp: 29.5, hum: 62, dist: 85.0, pir: 0, sound: 420 });
