@@ -25,41 +25,38 @@ Dự án kết hợp sức mạnh xử lý tín hiệu tại biên của vi đi�
 
 ## 2. KIẾN TRÚC TỔNG THỂ HỆ THỐNG
 
-
 ```mermaid
-flowchart TD
-    subgraph Edge["Tầng Thiết Bị Ngoại Vi - ESP32 DevKit V1"]
-        Door["Cảm biến Cửa từ (Reed Switch)<br/>GPIO 23 - Ngắt tức thì IRAM_ATTR"] -->|Ngắt phản hồi < 1ms| ESP["ESP32 Vi Điều Khiển<br/>(Non-blocking Scheduler)"]
-        PIR["Cảm biến Hồng ngoại PIR (HC-SR501)<br/>GPIO 27 - Ngắt phần cứng IRAM_ATTR"] -->|Ngắt thân nhiệt chuyển động| ESP
-        Sonic["Cảm biến Siêu âm (HC-SR04)<br/>GPIO 26 Trig / GPIO 25 Echo"] -->|Xung Echo lọc Median 5 mẫu| ESP
-        ESP -->|Cửa mở HOẶC cự ly < 10cm| LedRed["LED Đỏ (GPIO 18)<br/>Cảnh Báo Nguy Hiểm"]
-        ESP -->|Cửa đóng & cự ly 10-30cm| LedYellow["LED Vàng (GPIO 21)<br/>Cảnh Báo Cự Ly Gần"]
-        ESP -->|Cửa đóng & cự ly > 30cm| LedGreen["LED Xanh (GPIO 19)<br/>Khu Vực An Toàn"]
+graph TD
+    subgraph Edge Layer ["Tầng Thiết Bị Ngoại Vi - ESP32 DevKit V1"]
+        Door["Cảm biến Cửa từ Reed Switch<br/>GPIO 23 - Ngắt tức thì IRAM_ATTR"] -->|Ngắt phản hồi dưới 1ms| ESP["ESP32 Vi Điều Khiển<br/>(Non-blocking Scheduler)"]
+        PIR["Cảm biến Hồng ngoại PIR HC-SR501<br/>GPIO 27 - Ngắt phần cứng IRAM_ATTR"] -->|Ngắt thân nhiệt chuyển động| ESP
+        Sonic["Cảm biến Siêu âm HC-SR04<br/>GPIO 26 Trig / GPIO 25 Echo"] -->|Xung Echo lọc Median 5 mẫu| ESP
+        ESP -->|Cửa mở hoặc cự ly dưới 10cm| LedRed["LED Đỏ - GPIO 18<br/>Cảnh Báo Nguy Hiểm"]
+        ESP -->|Cửa đóng và cự ly 10-30cm| LedYellow["LED Vàng - GPIO 21<br/>Cảnh Báo Cự Ly Gần"]
+        ESP -->|Cửa đóng và cự ly trên 30cm| LedGreen["LED Xanh - GPIO 19<br/>Khu Vực An Toàn"]
     end
 
-    subgraph Transport["Tầng Truyền Thông - Raspberry Pi 5 Gateway"]
+    subgraph Transport Layer ["Tầng Truyền Thông - Raspberry Pi 5 Gateway"]
         ESP -->|Wi-Fi 2.4GHz / TCP:1883| Broker["Mosquitto MQTT Broker :1883<br/>(Chạy trên Raspberry Pi 5)"]
-        Broker -->|Topics: aiot/security/{sensors, alerts, status, command}| Ingestion["MQTT Ingestion Service<br/>(Node.js MQTT Client)"]
+        Broker -->|aiot/security/sensors, alerts, status| Ingestion["MQTT Ingestion Service<br/>(Node.js MQTT Client)"]
     end
 
-    subgraph Core["Tầng Xử Lý Trung Tâm - Node.js Backend & AI"]
-        Ingestion --> Val{"Kiểm Duyệt & Chuẩn Hóa"}
-        Val -->|Dữ Liệu Cảm Biến Hợp Lệ| DB[("Cơ Sở Dữ Liệu Kép<br/>PostgreSQL (Chính) & SQLite 3 (Dự phòng)")]
+    subgraph Core Layer ["Tầng Xử Lý Trung Tâm - Node.js Backend & AI"]
+        Ingestion --> Val{"Kiểm Duyệt và Chuẩn Hóa"}
+        Val -->|Dữ Liệu Hợp Lệ| DB[("Cơ Sở Dữ Liệu Kép<br/>PostgreSQL và SQLite 3")]
         Val -->|Vector Đặc Trưng Số| AI["Isolation Forest ML Engine<br/>(Phát hiện dị thường đa chiều)"]
-        AI -->|Anomaly Score & Summary| AICache["Bộ Nhớ Đệm RAM / Cache"]
-        API["Express.js REST API :8000"] -->|Đọc / Ghi CSDL| DB
-        API -->|Truy Vấn Điểm AI Tức Thời| AICache
+        AI -->|Anomaly Score và Summary| AICache["Bộ Nhớ Đệm RAM Cache"]
+        API["Express.js REST API :8000"] -->|Đọc Ghi CSDL| DB
+        API -->|Truy Vấn Tức Thời| AICache
     end
 
-    subgraph Presentation["Tầng Giao Diện - React 18 & Vite Dashboard"]
-        API -->|REST API Proxy /api| UI["Dashboard React 18 :3000<br/>(Chuyển đổi Giao diện Sáng / Tối)"]
-        UI --> Monitor["SmartMonitorView<br/>(Giám Sát 5 Phụ Kiện Thời Gian Thực)"]
-        UI --> Charts["Bộ Biểu Đồ Recharts<br/>(Xu Hướng Khoảng Cách & Sự Kiện)"]
-        UI --> History["Bảng Lịch Sử & Quản Lý Trạm Thiết Bị"]
+    subgraph Presentation Layer ["Tầng Giao Diện - React 18 & Vite"]
+        API -->|REST API Proxy /api| UI["Dashboard React 18 :3000<br/>(Giao diện Sáng và Tối)"]
+        UI --> Monitor["SmartMonitorView<br/>(Giám Sát 5 Phụ Kiện)"]
+        UI --> Charts["Bộ Biểu Đồ Recharts<br/>(Xu Hướng Cảm Biến)"]
+        UI --> History["Bảng Lịch Sử và Quản Lý Trạm"]
     end
 ```
-
----
 ## 3. CÔNG NGHỆ SỬ DỤNG
 
 | Phân hệ | Công nghệ | Phiên bản / Chi tiết kỹ thuật |
