@@ -22,6 +22,7 @@ Cơ sở dữ liệu	SQLite 3	Chế độ Write-Ahead Logging (WAL), Ràng buộ
 Trí tuệ nhân tạo	Scikit-learn / NumPy / Pandas	Isolation Forest (100 estimators, contamination 0.05), StandardScaler 7 features
 Frontend	React 18 / Vite / Recharts	JavaScript JSX, Vite 5, Recharts, Lucide Icons, Axios, Dark Modern CSS
 4. CẤU TRÚC THƯ MỤC DỰ ÁN
+```Text
 E:\SMART_AIoT_SECURITY\
 ├── README.md                      # Tài liệu tổng thể dự án (Master Guide)
 ├── PROJECT_REPORT.md              # Báo cáo kỹ thuật tổng kết toàn diện dự án
@@ -72,7 +73,9 @@ E:\SMART_AIoT_SECURITY\
         ├── App.jsx / App.css      # Điều phối giao diện, Smart Polling, Dark Theme
         ├── services/api.js        # Lớp gọi REST API qua Axios
         └── components/            # 8 Component giao diện chuyên biệt
-5. SƠ ĐỒ KẾT NỐI PHẦN CỨNG & BẢNG GPIO
+```
+----
+6. SƠ ĐỒ KẾT NỐI PHẦN CỨNG & BẢNG GPIO
 Bảng phân bổ chân GPIO trên ESP32 DevKit V1:
 Cảm biến / Chấp hành	Chân ESP32	Mức điện áp	Ghi chú kỹ thuật an toàn
 DHT22	GPIO 4	3.3V	Cần trở kéo pull-up 
