@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, ShieldAlert, Cpu, RefreshCw, Radio, Server } from 'lucide-react';
+import { ShieldCheck, Cpu, RefreshCw, Radio, Server, Sun, Moon } from 'lucide-react';
 
 export default function Header({
   health,
@@ -9,7 +9,9 @@ export default function Header({
   onSelectDevice,
   onRefresh,
   isRefreshing,
-  lastUpdated
+  lastUpdated,
+  theme,
+  onToggleTheme
 }) {
   const brokerConnected = health?.broker_connected;
 
@@ -26,14 +28,33 @@ export default function Header({
       </div>
 
       <div className="header-controls">
+        {/* Nút Chuyển Đổi Giao Diện Sáng / Tối */}
+        <button
+          onClick={onToggleTheme}
+          className="theme-toggle-btn"
+          title={theme === 'dark' ? 'Chuyển sang Giao diện Sáng' : 'Chuyển sang Giao diện Tối'}
+        >
+          {theme === 'dark' ? (
+            <>
+              <Sun size={15} color="#f59e0b" />
+              <span>Giao diện Sáng</span>
+            </>
+          ) : (
+            <>
+              <Moon size={15} color="#4f46e5" />
+              <span>Giao diện Tối</span>
+            </>
+          )}
+        </button>
+
         {/* Lựa chọn thiết bị */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <Cpu size={16} color="#94a3b8" />
+          <Cpu size={16} color="var(--text-muted)" />
           <select
             value={selectedDevice || ''}
             onChange={(e) => onSelectDevice(e.target.value)}
             className="btn-secondary"
-            style={{ fontWeight: 600, color: '#38bdf8' }}
+            style={{ fontWeight: 600, color: 'var(--accent-blue)' }}
           >
             {devices && devices.length > 0 ? (
               devices.map((d) => (
@@ -48,7 +69,7 @@ export default function Header({
         </div>
 
         {/* Trạng thái Backend */}
-        <div className={`status-pill ${backendOnline ? '' : 'offline'}`} title="Trạng thái máy chủ FastAPI">
+        <div className={`status-pill ${backendOnline ? '' : 'offline'}`} title="Trạng thái máy chủ Backend">
           <Server size={14} />
           <span className="status-dot"></span>
           <span>{backendOnline ? 'Backend Online' : 'Backend Mất kết nối'}</span>

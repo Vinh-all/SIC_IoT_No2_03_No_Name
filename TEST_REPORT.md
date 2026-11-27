@@ -6,6 +6,7 @@
 **Tỷ lệ đạt (Pass Rate):** **12/12 Test Cases (100.0% PASS)**
 
 ---
+##.\venv\Scripts\Activate.ps1
 
 ## 1. MỤC TIÊU VÀ PHẠM VI KIỂM THỬ
 

@@ -3,28 +3,25 @@
 
 #include "config.h"
 
-class AlarmActuator {
+class LEDActuator {
 public:
-    AlarmActuator();
+    LEDActuator();
     void begin();
-    void update(AlarmState &state);
-    void testSelfCheck(); // Chớp tắt kiểm tra LED và Buzzer khi khởi động
+    void update(float distanceCm, bool distanceValid, int motion, int doorOpen, SensorData &data);
+    void testSelfCheck(); // Chớp kiểm tra tuần tự 3 LED lúc khởi động
 
-    // Trạng thái hiện tại của thiết bị cảnh báo để hiển thị trên Serial Monitor
-    bool isGreenLedOn() const { return _greenState; }
-    bool isRedLedActive() const { return _isAlertMode; }
-    bool isBuzzerActive() const { return _isAlertMode; }
+    bool isRedOn() const { return _redState; }
+    bool isYellowOn() const { return _yellowState; }
+    bool isGreenOn() const { return _greenState; }
     const char* getStatusDescription() const;
 
 private:
     int _pinRed;
+    int _pinYellow;
     int _pinGreen;
-    int _pinBuzzer;
 
-    unsigned long _lastBlinkTime;
-    unsigned long _alarmHoldUntil;
-    bool _toggleState;
-    bool _isAlertMode;
+    bool _redState;
+    bool _yellowState;
     bool _greenState;
 };
 

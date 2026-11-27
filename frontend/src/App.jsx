@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import Header from './components/Header';
+import SmartMonitorView from './components/SmartMonitorView';
 import SensorGrid from './components/SensorGrid';
 import SensorCharts from './components/SensorCharts';
 import AIAnomalySection from './components/AIAnomalySection';
@@ -19,21 +20,25 @@ import {
   getAIHistory
 } from './services/api';
 
-import { 
-  LayoutDashboard, 
-  LineChart, 
-  ShieldAlert, 
-  Database, 
-  Cpu, 
-  AlertCircle 
+import {
+  LayoutDashboard,
+  LineChart,
+  ShieldAlert,
+  Database,
+  Cpu,
+  AlertCircle
 } from 'lucide-react';
 
 export default function App() {
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('app-theme') || 'light';
+  });
+
   const [activeTab, setActiveTab] = useState('overview');
   const [backendOnline, setBackendOnline] = useState(true);
   const [health, setHealth] = useState(null);
   const [devices, setDevices] = useState([]);
-  const [selectedDevice, setSelectedDevice] = useState('ESP32_001');
+  const [selectedDevice, setSelectedDevice] = useState('esp32_station_01');
 
   const [latestSensor, setLatestSensor] = useState(null);
   const [history, setHistory] = useState([]);
@@ -86,7 +91,13 @@ export default function App() {
         getAIHistory(selectedDevice, 50).catch(() => null)
       ]);
 
-      if (devRes && devRes.data) setDevices(devRes.data);
+      if (devRes && devRes.data && devRes.data.length > 0) {
+        setDevices(devRes.data);
+        setSelectedDevice((prev) => {
+          const exists = devRes.data.some((d) => d.device_id === prev);
+          return exists ? prev : devRes.data[0].device_id;
+        });
+      }
       if (histRes && histRes.data) setHistory(histRes.data);
       if (alertRes && alertRes.data) setAlerts(alertRes.data);
       if (aiStatRes && aiStatRes.data) setAiStatus(aiStatRes.data);
@@ -118,6 +129,15 @@ export default function App() {
     };
   }, [fetchFastData, fetchSlowData]);
 
+  useEffect(() => {
+    localStorage.setItem('app-theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  const handleToggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
   return (
     <div className="dashboard-container">
       {/* 1. Header Điều Khiển */}
@@ -130,125 +150,160 @@ export default function App() {
         onRefresh={handleManualRefresh}
         isRefreshing={isRefreshing}
         lastUpdated={lastUpdated}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       />
 
-      {/* 2. Thanh Điều Hướng Tab */}
-      <nav className="nav-tabs">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-        >
-          <LayoutDashboard size={16} />
-          <span>Tổng Quan Giám Sát</span>
-        </button>
+      {/* 2. Phần Thân Gồm Sidebar Chức Năng Hàng Dọc (Trái) và Nội Dung Chính (Phải) */}
+      <div className="layout-body">
+        {/* 2.1. Sidebar Chức Năng Hàng Dọc Bên Trái */}
+        <aside className="sidebar-left">
+          <div className="sidebar-header">
+            <span className="sidebar-header-title">DANH MỤC CHỨC NĂNG</span>
+            <span className="sidebar-header-badge">4 Tabs</span>
+          </div>
 
-        <button
-          onClick={() => setActiveTab('charts')}
-          className={`tab-btn ${activeTab === 'charts' ? 'active' : ''}`}
-        >
-          <LineChart size={16} />
-          <span>Biểu Đồ Thời Gian Thực</span>
-        </button>
+          <nav className="sidebar-nav">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`sidebar-btn ${activeTab === 'overview' ? 'active' : ''}`}
+            >
+              <div className="sidebar-btn-icon">
+                <LayoutDashboard size={18} />
+              </div>
+              <div className="sidebar-btn-text">
+                <span className="sidebar-btn-label">Tổng Quan Giám Sát</span>
+                <span className="sidebar-btn-sub">Cảm biến hiện trường tức thời</span>
+              </div>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('alerts')}
-          className={`tab-btn ${activeTab === 'alerts' ? 'active' : ''}`}
-        >
-          <ShieldAlert size={16} />
-          <span>Cảnh Báo & Trí Tuệ Nhân Tạo (AI)</span>
-        </button>
+            <button
+              onClick={() => setActiveTab('charts')}
+              className={`sidebar-btn ${activeTab === 'charts' ? 'active' : ''}`}
+            >
+              <div className="sidebar-btn-icon">
+                <LineChart size={18} />
+              </div>
+              <div className="sidebar-btn-text">
+                <span className="sidebar-btn-label">Biểu Đồ Thời Gian Thực</span>
+                <span className="sidebar-btn-sub">Xu hướng Recharts</span>
+              </div>
+            </button>
 
-        <button
-          onClick={() => setActiveTab('history')}
-          className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
-        >
-          <Database size={16} />
-          <span>Lịch Sử Dữ Liệu (SQLite)</span>
-        </button>
+            {/* Chức năng Cảnh Báo & Trí Tuệ AI đã được ẩn theo yêu cầu */}
 
-        <button
-          onClick={() => setActiveTab('devices')}
-          className={`tab-btn ${activeTab === 'devices' ? 'active' : ''}`}
-        >
-          <Cpu size={16} />
-          <span>Quản Lý Thiết Bị ({devices.length})</span>
-        </button>
-      </nav>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`sidebar-btn ${activeTab === 'history' ? 'active' : ''}`}
+            >
+              <div className="sidebar-btn-icon">
+                <Database size={18} />
+              </div>
+              <div className="sidebar-btn-text">
+                <span className="sidebar-btn-label">Lịch Sử Dữ Liệu</span>
+                <span className="sidebar-btn-sub">Nhật ký SQLite 3</span>
+              </div>
+            </button>
 
-      {/* 3. Nội Dung Chính */}
-      <main className="main-content">
-        {/* Banner cảnh báo khi mất kết nối Backend */}
-        {!backendOnline && (
-          <div className="alert-banner">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <AlertCircle size={20} color="#ef4444" />
-              <span>
-                <strong>Không thể kết nối đến Backend Server (FastAPI)!</strong> Vui lòng đảm bảo server đang chạy tại port 8000 (<code>python main.py</code>).
+            <button
+              onClick={() => setActiveTab('devices')}
+              className={`sidebar-btn ${activeTab === 'devices' ? 'active' : ''}`}
+            >
+              <div className="sidebar-btn-icon">
+                <Cpu size={18} />
+              </div>
+              <div className="sidebar-btn-text">
+                <span className="sidebar-btn-label">Quản Lý Thiết Bị</span>
+                <span className="sidebar-btn-sub">{devices.length} trạm trực tuyến</span>
+              </div>
+            </button>
+          </nav>
+
+          {/* Hộp Thông Tin Giám Sát Nhanh */}
+          <div className="sidebar-quick-card">
+            <div className="sidebar-card-title">THÔNG TIN HỆ THỐNG</div>
+            <div className="sidebar-info-row">
+              <span className="label">Trạm hiện tại:</span>
+              <span className="val highlight">{selectedDevice}</span>
+            </div>
+            <div className="sidebar-info-row">
+              <span className="label">Trạng thái Backend:</span>
+              <span className={`val ${backendOnline ? 'status-ok' : 'status-err'}`}>
+                {backendOnline ? 'Trực tuyến' : 'Ngoại tuyến'}
               </span>
             </div>
-            <button onClick={handleManualRefresh} className="btn-secondary" style={{ padding: '0.2rem 0.6rem' }}>
-              Thử lại
-            </button>
+            <div className="sidebar-info-row">
+              <span className="label">MQTT Broker:</span>
+              <span className={`val ${health?.broker_connected ? 'status-ok' : 'status-err'}`}>
+                {health?.broker_connected ? 'Đã kết nối' : 'Mất kết nối'}
+              </span>
+            </div>
+            <div className="sidebar-info-row">
+              <span className="label">Chu kỳ Polling:</span>
+              <span className="val">2.5s / 6.0s</span>
+            </div>
+            <div className="sidebar-info-row">
+              <span className="label">Cập nhật lúc:</span>
+              <span className="val">{lastUpdated}</span>
+            </div>
           </div>
-        )}
+        </aside>
 
-        {/* TAB 1: TỔNG QUAN */}
-        {activeTab === 'overview' && (
-          <div>
-            {/* Lưới 7 thẻ cảm biến */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h2 style={{ margin: 0, fontSize: '1.15rem', color: '#f8fafc' }}>
-                  Thông Số Cảm Biến Hiện Trường ({selectedDevice})
-                </h2>
-                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                  Cập nhật lúc: <strong>{lastUpdated}</strong>
+        {/* 2.2. Nội Dung Chính Bên Phải */}
+        <main className="main-content">
+          {/* Banner cảnh báo khi mất kết nối Backend */}
+          {!backendOnline && (
+            <div className="alert-banner">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <AlertCircle size={20} color="#ef4444" />
+                <span>
+                  <strong>Không thể kết nối đến Backend Server (FastAPI)!</strong> Vui lòng đảm bảo server đang chạy tại port 8000 (<code>python main.py</code>).
                 </span>
               </div>
-              <SensorGrid data={latestSensor} />
+              <button onClick={handleManualRefresh} className="btn-secondary" style={{ padding: '0.2rem 0.6rem' }}>
+                Thử lại
+              </button>
             </div>
+          )}
 
-            {/* Phân tích AI Isolation Forest */}
-            <AIAnomalySection
-              aiResult={aiResult}
-              aiStatus={aiStatus}
-              onReloadAI={fetchSlowData}
+          {/* TAB 1: TỔNG QUAN (ĐÃ THAY THẾ BẰNG IOT SMART MONITOR - ULTRASONIC & LED STATUS) */}
+          {activeTab === 'overview' && (
+            <SmartMonitorView
+              latestSensor={latestSensor}
+              backendOnline={backendOnline}
+              health={health}
+              selectedDevice={selectedDevice}
             />
+          )}
 
-            {/* Biểu đồ tóm tắt ngắn */}
-            <div style={{ marginTop: '1.5rem' }}>
-              <SensorCharts history={history} />
+          {/* TAB 2: BIỂU ĐỒ THỜI GIAN THỰC */}
+          {activeTab === 'charts' && (
+            <SensorCharts history={history} />
+          )}
+
+          {/* TAB 3: CẢNH BÁO & AI (Đã ẩn theo yêu cầu) */}
+          {/* {activeTab === 'alerts' && (
+            <div>
+              <AIAnomalySection
+                aiResult={aiResult}
+                aiStatus={aiStatus}
+                onReloadAI={fetchSlowData}
+              />
+              <AlertsList alerts={alerts} aiHistory={aiHistory} />
             </div>
-          </div>
-        )}
+          )} */}
 
-        {/* TAB 2: BIỂU ĐỒ THỜI GIAN THỰC */}
-        {activeTab === 'charts' && (
-          <SensorCharts history={history} />
-        )}
+          {/* TAB 4: LỊCH SỬ DỮ LIỆU */}
+          {activeTab === 'history' && (
+            <HistoricalTable history={history} />
+          )}
 
-        {/* TAB 3: CẢNH BÁO & AI */}
-        {activeTab === 'alerts' && (
-          <div>
-            <AIAnomalySection
-              aiResult={aiResult}
-              aiStatus={aiStatus}
-              onReloadAI={fetchSlowData}
-            />
-            <AlertsList alerts={alerts} aiHistory={aiHistory} />
-          </div>
-        )}
-
-        {/* TAB 4: LỊCH SỬ DỮ LIỆU */}
-        {activeTab === 'history' && (
-          <HistoricalTable history={history} />
-        )}
-
-        {/* TAB 5: QUẢN LÝ THIẾT BỊ */}
-        {activeTab === 'devices' && (
-          <DeviceList devices={devices} />
-        )}
-      </main>
+          {/* TAB 5: QUẢN LÝ THIẾT BỊ */}
+          {activeTab === 'devices' && (
+            <DeviceList devices={devices} />
+          )}
+        </main>
+      </div>
 
       {/* 4. Footer */}
       <footer className="footer">

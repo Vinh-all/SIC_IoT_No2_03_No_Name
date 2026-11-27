@@ -68,6 +68,7 @@ backend/.env
 venv/
 .venv/
 backend/venv/
+venv_old/
 env/
 ENV/
 

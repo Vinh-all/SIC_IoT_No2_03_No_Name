@@ -1,183 +1,88 @@
 #include <Arduino.h>
 #include <string.h>
 #include "config.h"
-#include "sensors/dht_sensor.h"
 #include "sensors/pir_sensor.h"
-#include "sensors/mq2_sensor.h"
-#include "sensors/sound_sensor.h"
-#include "sensors/touch_sensor.h"
+#include "sensors/door_sensor.h"
 #include "sensors/ultrasonic_sensor.h"
 #include "actuators/alarm_actuator.h"
 #include "network/wifi_module.h"
 #include "network/mqtt_module.h"
 
 // ==============================================================================
-// KHỞI TẠO CÁC MODULE PHẦN CỨNG & MẠNG TRUYỀN THÔNG
+// KHỞI TẠO CÁC MODULE THIẾT BỊ PHẦN CỨNG (HỖ TRỢ NGẮT PHẦN CỨNG TỨC THÌ)
 // ==============================================================================
-DHTSensorModule         dhtSensor;
-PIRSensorModule         pirSensor;
-MQ2SensorModule         mq2Sensor;
-SoundSensorModule       soundSensor;
-TouchSensorModule       touchSensor;
-UltrasonicSensorModule  ultrasonicSensor;
-AlarmActuator           alarmActuator;
-WiFiModule              wifiModule;
-MQTTModule              mqttModule;
+PIRSensorModule         pirSensor;          // Cảm biến hồng ngoại ngắt phần cứng (GPIO 27)
+DoorSensorModule        doorSensor;         // Cảm biến cửa từ mở tức thì ngắt phần cứng (GPIO 23)
+UltrasonicSensorModule  ultrasonicSensor;   // Cảm biến khoảng cách siêu âm (Trig 26, Echo 25)
+LEDActuator             ledActuator;        // 3 LED: Đỏ (GPIO 18), Vàng (GPIO 21), Xanh (GPIO 19)
+WiFiModule              wifiModule;         // Quản lý Wi-Fi tự phục hồi ngầm
+MQTTModule              mqttModule;         // Kết nối MQTT Broker trên Raspberry Pi 5
 
-// Cấu trúc dữ liệu và cảnh báo toàn cục
+// Dữ liệu cảm biến toàn cục
 SensorData currentData;
-AlarmState currentAlarm;
 
-// Trạng thái phục vụ phát hiện chuyển giao cảnh báo (để gửi bản tin alerts)
-bool lastTriggerState = false;
+// Bộ đếm thời gian non-blocking
+unsigned long lastSensorTime   = 0;
+unsigned long lastMqttPubTime  = 0;
+unsigned long lastLogTime      = 0;
+unsigned long totalMqttSent    = 0;
 
-// Bộ đếm thời gian non-blocking cho từng tác vụ
-unsigned long lastDhtTime        = 0;
-unsigned long lastPirTime        = 0;
-unsigned long lastMq2Time        = 0;
-unsigned long lastSoundTime      = 0;
-unsigned long lastUltrasonicTime = 0;
-unsigned long lastTouchTime      = 0;
-unsigned long lastLogTime        = 0;
-unsigned long lastMqttPubTime    = 0;
-
-// Thống kê số lượng gói tin gửi thành công
-unsigned long totalMqttSent      = 0;
+// Cờ phát hiện trạng thái nguy hiểm cự ly gần để tránh spam
+bool lastDangerState = false;
 
 // ==============================================================================
-// CALLBACK NHẬN LỆNH TỪ TOPIC COMMAND (BẢO VỆ AN TOÀN - CHỐNG ĐIỀU KHIỂN GPIO TÙY Ý)
+// CALLBACK NHẬN LỆNH TỪ RASPBERRY PI 5 QUA MQTT
 // ==============================================================================
 void onCommandReceived(char* topic, byte* payload, unsigned int length) {
-    if (length == 0 || length > 256) {
-        Serial.println(F("[MQTT COMMAND] Goi tin lenh khong hop le hoac vuot qua 256 bytes."));
-        return;
-    }
+    if (length == 0 || length > 256) return;
     char cmdBuf[257];
     memcpy(cmdBuf, payload, length);
     cmdBuf[length] = '\0';
-    Serial.printf("\n[MQTT COMMAND] Nhan lenh tu topic [%s]: %s\n", topic, cmdBuf);
+    Serial.printf("\n[MQTT COMMAND] Nhan lenh tu Raspberry Pi 5 [%s]: %s\n", topic, cmdBuf);
 
-    // NGUYÊN TẮC AN TOÀN BẢO MẬT:
-    // Tuyệt đối không cho phép điều khiển GPIO tùy ý từ MQTT.
-    // Chỉ chấp nhận các lệnh hệ thống có cấu trúc rõ ràng đã được định nghĩa trước.
-    if (strstr(cmdBuf, "TEST_ALARM") != NULL) {
-        Serial.println(F("[SECURITY] Chấp nhận lệnh TEST_ALARM: Kích hoạt còi/đèn kiểm tra..."));
-        alarmActuator.trigger();
-    } else if (strstr(cmdBuf, "RESET_ALARM") != NULL) {
-        Serial.println(F("[SECURITY] Chấp nhận lệnh RESET_ALARM: Đặt lại trạng thái báo động."));
-        alarmActuator.forceOff();
-    } else {
-        Serial.println(F("[SECURITY WARNING] Lệnh không xác định hoặc vi phạm chính sách an toàn. Bỏ qua!"));
+    if (strstr(cmdBuf, "TEST_LED") != NULL) {
+        Serial.println(F("[COMMAND] Kiem tra he thong 3 den LED..."));
+        ledActuator.testSelfCheck();
     }
 }
 
 // ==============================================================================
-// ĐÁNH GIÁ ĐIỀU KIỆN CẢNH BÁO (KHÔNG DÙNG GIÁ TRỊ LỖI ĐỂ BÁO ĐỘNG)
-// ==============================================================================
-void evaluateThresholds() {
-    // 1. Cảnh báo nhiệt độ và độ ẩm (chỉ đánh giá khi dữ liệu DHT22 hợp lệ)
-    if (currentData.dht_valid) {
-        currentAlarm.temp_alert = (currentData.temperature > THRESHOLD_TEMP_MAX || 
-                                   currentData.temperature < THRESHOLD_TEMP_MIN);
-        currentAlarm.humi_alert = (currentData.humidity > THRESHOLD_HUMI_MAX);
-    } else {
-        currentAlarm.temp_alert = false;
-        currentAlarm.humi_alert = false;
-    }
-
-    // 2. Cảnh báo khí gas / khói (dùng giá trị sau lọc EMA để tránh nhảy đột biến)
-    currentAlarm.gas_alert = (currentData.gas_adc > THRESHOLD_GAS_ADC);
-
-    // 3. Cảnh báo âm thanh bất thường (Peak-to-Peak vượt ngưỡng)
-    currentAlarm.sound_alert = (currentData.sound_adc > THRESHOLD_SOUND_ADC);
-
-    // 4. Cảnh báo chuyển động thân nhiệt (PIR)
-    currentAlarm.motion_alert = (currentData.motion == 1);
-
-    // 5. Cảnh báo chạm trái phép (TTP223)
-    currentAlarm.touch_alert = (currentData.touch == 1);
-
-    // 6. Cảnh báo khoảng cách tiếp cận quá gần (chỉ đánh giá khi siêu âm hợp lệ)
-    if (currentData.distance_valid) {
-        currentAlarm.distance_alert = (currentData.distance_cm > 0.0f && 
-                                       currentData.distance_cm < THRESHOLD_DISTANCE_CM);
-    } else {
-        currentAlarm.distance_alert = false;
-    }
-
-    // Tổng hợp kích hoạt báo động
-    currentAlarm.is_triggered = (currentAlarm.temp_alert ||
-                                 currentAlarm.gas_alert  ||
-                                 currentAlarm.motion_alert ||
-                                 currentAlarm.touch_alert  ||
-                                 currentAlarm.distance_alert);
-}
-
-// ==============================================================================
-// BẢNG THEO DÕI SERIAL MONITOR (GIAI ĐOẠN 2 - BỔ SUNG TRẠNG THÁI MẠNG)
+// BẢNG THEO DÕI SERIAL MONITOR THEO THỜI GIAN THỰC
 // ==============================================================================
 void printSerialDashboard() {
     Serial.println(F("\n=================================================================="));
-    Serial.printf(  "       SMART AIoT SECURITY - MONITOR [%s] (STAGE 2)       \n", currentData.device_id);
+    Serial.printf(  "    IOT SMART MONITOR - ESP32 [INTERRUPT SECURITY STATION]        \n");
     Serial.println(F("=================================================================="));
 
-    // 1. Nhiệt độ & Độ ẩm
-    if (currentData.dht_valid) {
-        Serial.printf(" [1. DHT22]      Nhiet do: %5.1f C | Do am: %5.1f %%  [Trang thai: OK]\n",
-                      currentData.temperature, currentData.humidity);
-    } else {
-        Serial.printf(" [1. DHT22]      Nhiet do: --.- C | Do am: --.- %%  [Trang thai: LOI CAM BIEN]\n");
-    }
+    // 1. Cảm biến cửa từ (Ngắt phần cứng - Hardware Interrupt)
+    Serial.printf(" [CẢM BIẾN CỬA (GPIO 23)]  %s (Trang thai: %s)\n",
+                  (currentData.door_open == 1) ? "🚨 [CỬA ĐANG MỞ! NGUY HIỂM]" : "🔒 [CỬA ĐÓNG - AN TOÀN]",
+                  (currentData.door_open == 1) ? "OPEN" : "CLOSED");
 
-    // 2. Khí gas / Khói (MQ-2)
-    Serial.printf(" [2. MQ-2]       Gia tri ADC sau loc EMA: %4d | Tho: %4d  [Nguong: >%d]\n",
-                  currentData.gas_adc, currentData.gas_raw, THRESHOLD_GAS_ADC);
-
-    // 3. Âm thanh (KY-037/KY-038)
-    Serial.printf(" [3. AM THANH]   Dac trung Peak-to-Peak ADC: %4d            [Nguong: >%d]\n",
-                  currentData.sound_adc, THRESHOLD_SOUND_ADC);
-
-    // 4. Chuyển động (PIR HC-SR501)
-    Serial.printf(" [4. PIR]        Chuyen dong (motion): %d -> %s\n",
-                  currentData.motion, 
+    // 2. Cảm biến hồng ngoại PIR (Ngắt phần cứng - Hardware Interrupt)
+    Serial.printf(" [HỒNG NGOẠI PIR (GPIO 27)] %s\n",
                   (currentData.motion == 1) ? ">>> PHAT HIEN CHUYEN DONG <<<" : "Yen tinh");
 
-    // 5. Cảm biến chạm (TTP223)
-    Serial.printf(" [5. TOUCH]      Cam bien cham (touch): %d -> %s\n",
-                  currentData.touch,
-                  (currentData.touch == 1) ? ">>> CO TIEP XUC VA CHAM <<<" : "Khong cham");
-
-    // 6. Khoảng cách siêu âm (HC-SR04)
+    // 3. Cảm biến siêu âm (HC-SR04)
     if (currentData.distance_valid) {
-        Serial.printf(" [6. HC-SR04]    Khoang cach vat the: %5.1f cm             [Nguong: <%.0f cm]\n",
-                      currentData.distance_cm, THRESHOLD_DISTANCE_CM);
+        Serial.printf(" [SIÊU ÂM (Trig 26/Echo 25)] Khoang cach: %5.1f cm -> %s\n",
+                      currentData.distance_cm, currentData.status_desc);
     } else {
-        Serial.printf(" [6. HC-SR04]    Khoang cach vat the: Ngoai tam/Timeout    [Trang thai: Cho vat the]\n");
+        Serial.println(F(" [SIÊU ÂM (Trig 26/Echo 25)] Khoang cach: Ngoai tam do / Cho tin hieu"));
     }
 
-    // 7. Trạng thái kết nối Wi-Fi và MQTT
+    // 4. Trạng thái 3 LED màu
     Serial.println(F("------------------------------------------------------------------"));
-    Serial.printf(" [KET NOI WI-FI] %s | IP: %s (RSSI: %d dBm)\n",
-                  wifiModule.isConnected() ? "DA KET NOI [OK]" : "MAT KET NOI [RETRY]",
+    Serial.printf(" [LED STATUS]               %s\n", ledActuator.getStatusDescription());
+
+    // 5. Kết nối Wi-Fi & Raspberry Pi 5
+    Serial.println(F("------------------------------------------------------------------"));
+    Serial.printf(" [WI-FI STA]                %s | IP: %s (RSSI: %d dBm)\n",
+                  wifiModule.isConnected() ? "CONNECTED [OK]" : "DISCONNECTED",
                   wifiModule.getIP().c_str(), wifiModule.getRSSI());
-    Serial.printf(" [MQTT BROKER]   %s | Host: %s:%d | Sent: %lu pkts\n",
-                  mqttModule.isConnected() ? "DA KET NOI [OK]" : "CHUA KET NOI [WAIT]",
+    Serial.printf(" [RASPBERRY PI 5 MQTT]      %s | Host: %s:%d | Sent: %lu pkts\n",
+                  mqttModule.isConnected() ? "ONLINE [OK]" : "CONNECTING...",
                   MQTT_BROKER_IP, MQTT_BROKER_PORT, totalMqttSent);
-
-    // 8. Trạng thái an ninh & Thiết bị phản hồi
-    Serial.println(F("------------------------------------------------------------------"));
-    if (currentAlarm.is_triggered) {
-        Serial.print(F(" [HE THONG]     TRANG THAI: NGUY HIEM / CANH BAO! Ly do: "));
-        if (currentAlarm.temp_alert)     Serial.print(F("[Nhiet do] "));
-        if (currentAlarm.gas_alert)      Serial.print(F("[Khi Gas] "));
-        if (currentAlarm.motion_alert)   Serial.print(F("[Chuyen dong] "));
-        if (currentAlarm.touch_alert)    Serial.print(F("[Cham vao thiet bi] "));
-        if (currentAlarm.distance_alert) Serial.print(F("[Tiep can gan] "));
-        Serial.println();
-    } else {
-        Serial.println(F(" [HE THONG]     TRANG THAI: BINH THUONG (Khu vuc an toan)"));
-    }
-    Serial.printf(" [ACTUATORS]    %s\n", alarmActuator.getStatusDescription());
     Serial.println(F("=================================================================="));
 }
 
@@ -186,131 +91,113 @@ void printSerialDashboard() {
 // ==============================================================================
 void setup() {
     Serial.begin(115200);
-    delay(1000); // Đợi ổn định nguồn và Serial
+    delay(1000);
 
-    // Gán Device ID chuẩn
+    // Gán Device ID
     strncpy(currentData.device_id, DEVICE_ID, sizeof(currentData.device_id) - 1);
     currentData.device_id[sizeof(currentData.device_id) - 1] = '\0';
 
     Serial.println();
     Serial.println(F("=================================================================="));
-    Serial.println(F("    KHOI DONG FIRMWARE GIAI DOAN 2 - WI-FI & MQTT CLIENT          "));
+    Serial.println(F("  FIRMWARE IOT SECURITY (HARDWARE INTERRUPTS: PIR & CỬA MỞ)       "));
+    Serial.println(F("  TRUYỀN THÔNG TỨC THÌ: ESP32 <=======> RASPBERRY PI 5            "));
     Serial.println(F("=================================================================="));
 
-    // Khởi tạo Actuators và tự kiểm tra
-    alarmActuator.begin();
-    Serial.println(F("[+] Khoi tao Actuators (LED Do: 18, LED Xanh: 19, Buzzer: 23)..."));
-    alarmActuator.testSelfCheck();
+    // 1. Khởi tạo 3 LED
+    ledActuator.begin();
+    ledActuator.testSelfCheck();
+    Serial.println(F("[+] Khoi tao 3 LED: Do (GPIO 18), Vang (GPIO 21), Xanh (GPIO 19)..."));
 
-    // Khởi tạo các module cảm biến
-    Serial.println(F("[+] Khoi tao cam bien DHT22 (GPIO 4)..."));
-    dhtSensor.begin();
+    // 2. Khởi tạo ngắt phần cứng cảm biến cửa mở tức thì
+    doorSensor.begin();
+    currentData.door_open = doorSensor.isOpen() ? 1 : 0;
+    Serial.println(F("[+] Da kich hoat NGAT PHAN CUNG cam bien Cua mo (GPIO 23 INPUT_PULLUP)..."));
 
-    Serial.println(F("[+] Khoi tao cam bien PIR HC-SR501 (GPIO 27)..."));
+    // 3. Khởi tạo ngắt phần cứng cảm biến hồng ngoại PIR
     pirSensor.begin();
+    currentData.motion = pirSensor.read();
+    Serial.println(F("[+] Da kich hoat NGAT PHAN CUNG cam bien Hong ngoai PIR (GPIO 27)..."));
 
-    Serial.println(F("[+] Khoi tao cam bien MQ-2 (GPIO 34 ADC1)..."));
-    mq2Sensor.begin();
-
-    Serial.println(F("[+] Khoi tao cam bien Am thanh KY-037 (GPIO 35 ADC1)..."));
-    soundSensor.begin();
-
-    Serial.println(F("[+] Khoi tao cam bien Cham TTP223 (GPIO 32)..."));
-    touchSensor.begin();
-
-    Serial.println(F("[+] Khoi tao cam bien Sieu am HC-SR04 (Trig: 26, Echo: 25)..."));
+    // 4. Khởi tạo cảm biến siêu âm HC-SR04
     ultrasonicSensor.begin();
+    Serial.println(F("[+] Khoi tao cam bien sieu am HC-SR04 (Trig: 26, Echo: 25)..."));
 
-    // Khởi tạo truyền thông mạng (Non-blocking: không bao giờ làm treo vòng lặp)
-    Serial.println(F("[+] Khoi tao ket noi Wi-Fi..."));
+    // 5. Khởi tạo kết nối mạng Wi-Fi và MQTT Broker
+    Serial.println(F("[+] Khoi tao ket noi Wi-Fi non-blocking..."));
     wifiModule.begin();
 
-    Serial.println(F("[+] Khoi tao MQTT Module..."));
+    Serial.println(F("[+] Khoi tao MQTT Module ket noi Raspberry Pi 5..."));
     mqttModule.begin();
     mqttModule.setCallback(onCommandReceived);
 
-    Serial.println(F("[SUCCESS] Tat ca module san sang hoat dong!\n"));
+    Serial.println(F("[SUCCESS] He thong san sang! Dang giam sat an ninh tuc thi...\n"));
 }
 
 // ==============================================================================
-// LOOP (VÒNG LẶP ĐA NHIỆM COOPERATIVE MULTITASKING KHÔNG NGHẼN)
+// LOOP (VÒNG LẶP ĐA NHIỆM KẾT HỢP XỬ LÝ NGẮT TỨC THÌ)
 // ==============================================================================
 void loop() {
     unsigned long currentMillis = millis();
 
-    // 1. Cập nhật trạng thái mạng Wi-Fi và MQTT (Chạy ngầm không nghẽn)
+    // 1. Duy trì kết nối mạng Wi-Fi và MQTT ngầm
     wifiModule.update();
     mqttModule.update();
 
-    // 2. Quét cảm biến chạm TTP223 (Chu kỳ 50ms)
-    if (currentMillis - lastTouchTime >= INTERVAL_TOUCH_MS) {
-        lastTouchTime = currentMillis;
-        currentData.touch = touchSensor.read();
-    }
+    // 2. PHẢN HỒI NGẮT PHẦN CỨNG MỞ CỬA TỨC THÌ (MICROSECOND RESPONSE)
+    if (doorSensor.hasDoorTriggered()) {
+        currentData.door_open = doorSensor.isOpen() ? 1 : 0;
+        
+        // Cập nhật trạng thái đèn LED ngay lập tức
+        ledActuator.update(currentData.distance_cm, currentData.distance_valid, currentData.motion, currentData.door_open, currentData);
 
-    // 3. Quét cảm biến chuyển động PIR (Chu kỳ 100ms)
-    if (currentMillis - lastPirTime >= INTERVAL_PIR_MS) {
-        lastPirTime = currentMillis;
-        currentData.motion = pirSensor.read();
-    }
-
-    // 4. Lấy mẫu đặc trưng âm thanh Peak-to-Peak (Chu kỳ 150ms)
-    if (currentMillis - lastSoundTime >= INTERVAL_SOUND_MS) {
-        lastSoundTime = currentMillis;
-        currentData.sound_raw = analogRead(PIN_SOUND_ANALOG);
-        currentData.sound_adc = soundSensor.readPeakToPeak(50);
-    }
-
-    // 5. Đọc cảm biến khí Gas/Khói MQ-2 có lọc EMA (Chu kỳ 200ms)
-    if (currentMillis - lastMq2Time >= INTERVAL_MQ2_MS) {
-        lastMq2Time = currentMillis;
-        currentData.gas_raw = mq2Sensor.readRaw();
-        currentData.gas_adc = mq2Sensor.readFiltered();
-    }
-
-    // 6. Đo khoảng cách siêu âm HC-SR04 có lọc Median & xử lý timeout (Chu kỳ 250ms)
-    if (currentMillis - lastUltrasonicTime >= INTERVAL_ULTRASONIC_MS) {
-        lastUltrasonicTime = currentMillis;
-        float d;
-        currentData.distance_valid = ultrasonicSensor.readDistance(d);
-        currentData.distance_cm = d;
-    }
-
-    // 7. Đọc nhiệt độ và độ ẩm DHT22 (Chu kỳ 2000ms)
-    if (currentMillis - lastDhtTime >= INTERVAL_DHT_MS) {
-        lastDhtTime = currentMillis;
-        float t, h;
-        if (dhtSensor.read(t, h)) {
-            currentData.temperature = t;
-            currentData.humidity = h;
-            currentData.dht_valid = true;
+        if (currentData.door_open == 1) {
+            Serial.println(F("\n🚨 >>> [HARDWARE INTERRUPT] CANH BAO: CUA DA BI MO TUC THI! <<<"));
+            // Bắn bản tin cảnh báo khẩn cấp lên Raspberry Pi 5 ngay lập tức
+            mqttModule.publishAlert("CANH BAO KHAN CAP: PHAT HIEN CUA MO TRAI PHEP", currentData);
+            mqttModule.publishSensorData(currentData);
         } else {
-            currentData.dht_valid = false;
+            Serial.println(F("\n🔒 >>> [HARDWARE INTERRUPT] Cua da duoc dong lai an toan. <<<"));
+            mqttModule.publishSensorData(currentData);
         }
     }
 
-    // 8. Đánh giá điều kiện cảnh báo theo ngưỡng
-    evaluateThresholds();
+    // 3. PHẢN HỒI NGẮT HỒNG NGOẠI PIR (PHÁT HIỆN THÂN NHIỆT NGƯỜI)
+    if (pirSensor.hasNewMotion()) {
+        currentData.motion = pirSensor.read();
+        pirSensor.clearMotionFlag();
 
-    // 9. Cập nhật thiết bị phản hồi (chống rung giật 3s)
-    alarmActuator.update(currentAlarm);
-
-    // 10. Gửi bản tin cảnh báo qua MQTT Topic aiot/security/alerts khi có sự cố mới xuất hiện
-    if (currentAlarm.is_triggered && !lastTriggerState) {
-        lastTriggerState = true;
-        char reasonBuffer[64] = "";
-        if (currentAlarm.temp_alert)     strcat(reasonBuffer, "TEMP_HIGH ");
-        if (currentAlarm.gas_alert)      strcat(reasonBuffer, "GAS_LEAK ");
-        if (currentAlarm.motion_alert)   strcat(reasonBuffer, "MOTION ");
-        if (currentAlarm.touch_alert)    strcat(reasonBuffer, "TOUCH_TAMPER ");
-        if (currentAlarm.distance_alert) strcat(reasonBuffer, "PROXIMITY ");
-        
-        mqttModule.publishAlert(reasonBuffer, currentData);
-    } else if (!currentAlarm.is_triggered) {
-        lastTriggerState = false;
+        if (currentData.motion == 1) {
+            Serial.println(F("\n🚶 >>> [HARDWARE INTERRUPT] Phat hien chuyen dong hong ngoai! <<<"));
+            // Nếu có chuyển động mà khoảng cách siêu âm đang gần -> Cảnh báo tiếp cận
+            if (currentData.distance_valid && currentData.distance_cm < DISTANCE_THRESHOLD_SAFE) {
+                mqttModule.publishAlert("PHAT HIEN CHUYEN DONG HONG NGOAI O CU LY GAN", currentData);
+            }
+        }
     }
 
-    // 11. Gửi định kỳ dữ liệu cảm biến lên MQTT Topic aiot/security/sensors (Chu kỳ 3000ms)
+    // 4. CHU KỲ ĐO SIÊU ÂM & ĐIỀU KHIỂN 3 LED THEO KHOẢNG CÁCH (Mỗi 100ms)
+    if (currentMillis - lastSensorTime >= INTERVAL_ULTRASONIC_MS) {
+        lastSensorTime = currentMillis;
+
+        // Cập nhật khoảng cách siêu âm (lọc Median 5 mẫu)
+        float dist;
+        currentData.distance_valid = ultrasonicSensor.readDistance(dist);
+        currentData.distance_cm = dist;
+
+        // Cập nhật trạng thái 3 LED tự động
+        ledActuator.update(currentData.distance_cm, currentData.distance_valid, currentData.motion, currentData.door_open, currentData);
+
+        // Bắn cảnh báo nếu có đối tượng lọt vào phạm vi nguy hiểm (< 10cm)
+        bool isDanger = (currentData.distance_valid && currentData.distance_cm < DISTANCE_THRESHOLD_DANGER);
+        if (isDanger && !lastDangerState) {
+            lastDangerState = true;
+            mqttModule.publishAlert("VAT THE TIEP CAN CU LY NGUY HIEM (< 10cm)", currentData);
+        } else if (!isDanger) {
+            lastDangerState = false;
+        }
+    }
+
+    // 5. GỬI ĐỊNH KỲ DỮ LIỆU LÊN RASPBERRY PI 5 QUA MQTT (Mỗi 1s)
     if (currentMillis - lastMqttPubTime >= INTERVAL_MQTT_PUB_MS) {
         lastMqttPubTime = currentMillis;
         if (mqttModule.publishSensorData(currentData)) {
@@ -318,7 +205,7 @@ void loop() {
         }
     }
 
-    // 12. Hiển thị báo cáo chi tiết lên Serial Monitor (Chu kỳ 1000ms)
+    // 6. IN THÔNG TIN BẢNG GIÁM SÁT RA SERIAL MONITOR (Mỗi 1s)
     if (currentMillis - lastLogTime >= INTERVAL_SERIAL_LOG_MS) {
         lastLogTime = currentMillis;
         printSerialDashboard();
