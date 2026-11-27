@@ -63,7 +63,6 @@ graph TD
 ```
 
 ---
-
 ## 3. CÔNG NGHỆ SỬ DỤNG
 
 | Phân hệ | Công nghệ | Phiên bản / Chi tiết kỹ thuật |
@@ -238,6 +237,15 @@ cd E:\SMART_AIoT_SECURITY\backend
 - **Kiểm tra tháo gỡ thiết bị:** Chạm tay vào TTP223 $\rightarrow$ Ghi nhận cảnh báo chạm trái phép vào nhật ký an ninh.
 
 ---
+---
+## 7.3. Kết quả và sảm phẩm kiểm thử hệ thống 
+<img width="1280" height="722" alt="image" src="https://github.com/user-attachments/assets/f9eec60c-5a27-479b-9622-b8ad377bf03f" />
+<img width="1280" height="722" alt="image" src="https://github.com/user-attachments/assets/1da52492-04df-49aa-95cb-dc92d493024b" />
+<img width="1280" height="722" alt="image" src="https://github.com/user-attachments/assets/aaee7ae1-4f33-43ce-b3f2-e4ef7591abc6" />
+<img width="1280" height="722" alt="image" src="https://github.com/user-attachments/assets/8ecf9944-63b1-4dd1-8508-ced8b7de9cb8" />
+
+
+
 
 ## 8. CÁC LỖI THƯỜNG GẶP & CÁCH KHẮC PHỤC (TROUBLESHOOTING)
 
