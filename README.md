@@ -16,7 +16,7 @@
 Dự án kết hợp sức mạnh xử lý tín hiệu tại biên của vi điều khiển **ESP32 DevKit V1**, hạ tầng truyền tin thời gian thực **Mosquitto MQTT**, máy chủ xử lý trung tâm **FastAPI (Python)**, cơ sở dữ liệu **SQLite (WAL Mode)**, mô hình học máy phát hiện dị thường **Isolation Forest (Scikit-learn)** và giao diện điều khiển giám sát trực quan hiện đại **React 18 + Vite**.
 
 ### Mục tiêu chính:
-- **Giám sát môi trường đa thông số:** Đo nhiệt độ, độ ẩm, rò rỉ khí gas/khói, tiếng ồn bất thường, phát hiện chuyển động thân nhiệt và cảnh báo chạm tháo gỡ thiết bị trái phép.
+- **Giám sát môi trường đa thông số:** Đo nhiệt độ, độ ẩm, tiếng ồn bất thường, phát hiện chuyển động thân nhiệt và cảnh báo chạm tháo gỡ thiết bị trái phép.
 - **Phản ứng tại chỗ tức thời:** Kích hoạt còi báo động (Active Buzzer) và đèn LED cảnh báo ngay tại trạm khi xảy ra sự cố phần cứng mà không phụ thuộc vào kết nối mạng.
 - **Phát hiện dị thường thông minh bằng AI:** Ứng dụng mô hình học máy Isolation Forest để phân tích đa chiều 7 đặc trưng số học, phát hiện các nguy cơ tiềm ẩn mà các ngưỡng cứng vật lý thông thường bỏ sót.
 - **Giám sát tập trung trực quan:** Cung cấp Dashboard thời gian thực, trực quan hóa xu hướng qua biểu đồ Recharts, phân tách rạch ròi 2 lớp cảnh báo và hỗ trợ tra cứu lịch sử nhanh chóng.
@@ -122,7 +122,7 @@ SMART_AIoT_SECURITY/
 │       ├── App.css                      # Biến CSS Theme (Sáng & Tối), bố cục responsive & thanh cuộn sidebar
 │       ├── main.jsx                     # Điểm gắn kết React DOM
 │       ├── 📁 components/
-│       │   ├── Header.jsx               # Thanh điều hướng, chọn thiết bị trạm & nút chuyển đổi Sáng / Tối
+│       │   ├── Header.jsx               # Thanh điều hướng, chọn thiết bị trạm & nút chuyển đổi Tối
 │       │   ├── SmartMonitorView.jsx     # Màn hình giám sát 5 phụ kiện (Pi 5, ESP32, Cửa, PIR, Siêu âm, 3 LED)
 │       │   ├── SmartMonitorView.css     # Hiệu ứng 3D đèn LED phát sáng, thước đo cự ly & bảng mô phỏng tương tác
 │       │   ├── SensorCharts.jsx         # Biểu đồ chuỗi thời gian Recharts trực quan hóa xu hướng
@@ -230,8 +230,7 @@ cd E:\SMART_AIoT_SECURITY\backend
 
 ### 7.2. Kiểm thử thực tế trên phần cứng
 - **Kiểm tra nhiệt/ẩm:** Thổi hơi ấm vào DHT22, quan sát biểu đồ nhiệt độ nhảy tức thì trên Dashboard.
-- **Kiểm tra xâm nhập:** Đưa tay lại gần HC-SR04 (< 30cm) kết hợp vẫy tay trước cảm biến PIR $\rightarrow$ Còi Buzzer kêu, LED Đỏ chớp, Dashboard hiển thị thẻ cảnh báo đỏ.
-- **Kiểm tra rò rỉ khí gas:** Xì nhẹ khí bật lửa vào cảm biến MQ-2 $\rightarrow$ Giá trị ADC tăng vọt, còi báo động kêu liên tục, thanh đo AI Anomaly Score nhảy vọt lên trên 0.65.
+- **Kiểm tra xâm nhập:** Đưa tay lại gần HC-SR04 (< 30cm) kết hợp vẫy tay trước cảm biến PIR $\rightarrow$ Còi Buzzer kêu, LED Đỏ chớp, Dashboard hiển thị thẻ cảnh báo đỏ.    
 - **Kiểm tra tháo gỡ thiết bị:** Chạm tay vào TTP223 $\rightarrow$ Ghi nhận cảnh báo chạm trái phép vào nhật ký an ninh.
 
 ---
