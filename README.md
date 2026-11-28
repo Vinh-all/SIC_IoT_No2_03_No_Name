@@ -21,60 +21,7 @@ Backend	Python / FastAPI / Pydantic	Python 3.10+, FastAPI, Pydantic v2, Paho-MQT
 Cơ sở dữ liệu	SQLite 3	Chế độ Write-Ahead Logging (WAL), Ràng buộc Khóa ngoại (Foreign Keys), Chỉ mục kép
 Trí tuệ nhân tạo	Scikit-learn / NumPy / Pandas	Isolation Forest (100 estimators, contamination 0.05), StandardScaler 7 features
 Frontend	React 18 / Vite / Recharts	JavaScript JSX, Vite 5, Recharts, Lucide Icons, Axios, Dark Modern CSS
-4. CẤU TRÚC THƯ MỤC DỰ ÁN
-```Text
-E:\SMART_AIoT_SECURITY\
-├── README.md                      # Tài liệu tổng thể dự án (Master Guide)
-├── PROJECT_REPORT.md              # Báo cáo kỹ thuật tổng kết toàn diện dự án
-├── PROJECT_CONTEXT.md             # Tài liệu ngữ cảnh, quy ước phần cứng & dữ liệu
-├── PHASE_STATUS.md                # Bảng theo dõi tiến độ và biên bản nghiệm thu 8 giai đoạn
-├── CHANGELOG.md                   # Nhật ký lịch sử các phiên bản phát triển
-├── TEST_REPORT.md                 # Biên bản kiểm thử tích hợp toàn hệ thống (100% PASS)
-├── .gitignore                     # Cấu hình loại trừ tệp nhạy cảm và build
-├── .env.example                   # Mẫu cấu hình biến môi trường an toàn
-│
-├── firmware/                      # Module Firmware vi điều khiển ESP32
-│   ├── platformio.ini             # Cấu hình biên dịch PlatformIO
-│   ├── README.md                  # Hướng dẫn đấu dây và nạp Firmware
-│   ├── include/
-│   │   ├── config.h               # Định nghĩa chân GPIO, chu kỳ đọc và ngưỡng
-│   │   ├── credentials.h.example  # Mẫu thông tin Wi-Fi và MQTT Broker
-│   │   └── credentials.h          # Thông tin mạng thật (không commit Git)
-│   └── src/
-│       ├── main.cpp               # Điểm khởi chạy non-blocking và xử lý lệnh
-│       ├── sensors/               # Drivers đọc và lọc tín hiệu 6 cảm biến
-│       ├── actuators/             # Điều khiển còi và LED chống rung nhiễu 3s
-│       └── network/               # Module Wi-Fi và MQTT Client tự phục hồi
-│
-├── backend/                       # Module Máy chủ Backend FastAPI & Dịch vụ AI
-│   ├── main.py                    # Điểm khởi chạy FastAPI, cấu hình CORS & Lifespan
-│   ├── requirements.txt           # Danh mục thư viện Python cần thiết
-│   ├── test_integration_e2e.py    # Bộ kiểm thử tích hợp 12 Test Cases
-│   ├── README.md                  # Hướng dẫn cài đặt và tài liệu REST API
-│   ├── .env.example               # Mẫu biến môi trường cho Backend
-│   └── app/
-│       ├── api/endpoints/         # 11 REST API endpoints chuẩn hóa
-│       ├── core/config.py         # Quản lý cấu hình tập trung và nạp .env
-│       ├── db/session.py          # Kết nối SQLite và thiết lập chế độ WAL
-│       ├── models/ & schemas/     # Mô hình dữ liệu và Pydantic Schemas
-│       └── services/              # MQTT Ingestion, SQLiteStorage, AI Isolation Forest
-│
-├── database/                      # Module Cơ sở dữ liệu SQLite
-│   ├── schema.sql                 # Kịch bản DDL tạo 3 bảng chính và chỉ mục
-│   ├── security.db                # Tệp cơ sở dữ liệu SQLite vật lý
-│   └── README.md                  # Hướng dẫn truy vấn, sao lưu và bảo trì DB
-│
-└── frontend/                      # Module Giao diện người dùng React & Vite
-    ├── index.html                 # HTML template gốc
-    ├── package.json               # Cấu hình gói và dependencies npm
-    ├── vite.config.js             # Cấu hình Vite Dev Server và API Proxy
-    ├── README.md                  # Hướng dẫn chạy và sử dụng Dashboard
-    └── src/
-        ├── App.jsx / App.css      # Điều phối giao diện, Smart Polling, Dark Theme
-        ├── services/api.js        # Lớp gọi REST API qua Axios
-        └── components/            # 8 Component giao diện chuyên biệt
-```
-----
+
 6. SƠ ĐỒ KẾT NỐI PHẦN CỨNG & BẢNG GPIO
 Bảng phân bổ chân GPIO trên ESP32 DevKit V1:
 Cảm biến / Chấp hành	Chân ESP32	Mức điện áp	Ghi chú kỹ thuật an toàn
