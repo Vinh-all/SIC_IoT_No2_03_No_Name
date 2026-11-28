@@ -8,7 +8,7 @@
 Trong bối cảnh chuyển đổi số và tự động hóa công trình thông minh, việc bảo đảm an ninh, an toàn tài sản và môi trường tại các khu vực trọng yếu (như phòng máy chủ, phòng thí nghiệm điện tử, kho lưu trữ thiết bị, văn phòng) đối mặt với nhiều thách thức nghiêm trọng:
 
 1. **Giới hạn của các hệ thống an ninh truyền thống:** Hầu hết các hệ thống báo động hiện nay hoạt động đơn lẻ dựa trên các ngưỡng cứng vật lý cố định (Rules-based). Ví dụ: còi chỉ kêu khi nồng độ khói vượt ngưỡng cực hạn hoặc khi có đối tượng cắt qua tia hồng ngoại. Cách tiếp cận này thường bỏ sót các nguy cơ tiềm ẩn phức hợp diễn ra đồng thời (ví dụ: nhiệt độ tăng nhẹ kết hợp âm thanh lạ vào ban đêm) hoặc gây ra tình trạng báo động giả thường xuyên do nhiễu môi trường.
-2. **Thiếu khả năng phân tích tương quan đa biến:** Dữ liệu từ các cảm biến nhiệt độ, độ ẩm, khí gas, âm thanh, chuyển động và khoảng cách thường bị tách rời, không được liên kết để đánh giá toàn diện mức độ an toàn của không gian giám sát.
+2. **Thiếu khả năng phân tích tương quan đa biến:** Dữ liệu từ các cảm biến nhiệt độ âm thanh, chuyển động và khoảng cách thường bị tách rời, không được liên kết để đánh giá toàn diện mức độ an toàn của không gian giám sát.
 3. **Độ tin cậy và tính liên tục trong truyền thông:** Khi xảy ra sự cố mất điện, mất mạng Wi-Fi hoặc máy chủ trung tâm bị treo, các thiết bị ngoại vi tại hiện trường thường mất khả năng tự vệ và tê liệt hệ thống cảnh báo.
 4. **Giao diện quản lý phân mảnh:** Người quản trị thiếu một bảng điều khiển tập trung, trực quan, hỗ trợ xem đồng thời trạng thái tức thời, xu hướng lịch sử và nhận định sớm từ trí tuệ nhân tạo.
 
@@ -19,7 +19,7 @@ Dự án **SMART AIoT SECURITY** được nghiên cứu và phát triển nhằm
 ## 2. MỤC TIÊU DỰ ÁN
 
 ### 2.1. Mục tiêu chức năng:
-- **Thu thập dữ liệu môi trường đa thông số:** Thu thập liên tục và chính xác 7 chỉ số vật lý tại hiện trường (Nhiệt độ, Độ ẩm, Khí gas/Khói, Cường độ âm thanh, Chuyển động thân nhiệt, Chạm tháo gỡ trái phép, Khoảng cách tiếp cận).
+- **Thu thập dữ liệu môi trường đa thông số:** Thu thập liên tục và chính xác 7 chỉ số vật lý tại hiện trường (Nhiệt độ, Độ ẩm, Cường độ âm thanh, Chuyển động thân nhiệt, Chạm tháo gỡ trái phép, Khoảng cách tiếp cận).
 - **Phản ứng tại chỗ tức thời:** Kích hoạt cảnh báo quang - âm (LED Đỏ và Còi Buzzer) độc lập ngay tại biên (Edge) khi phát hiện sự cố nguy hiểm, không phụ thuộc vào tình trạng mạng Internet.
 - **Truyền thông tin cậy thời gian thực:** Truyền tải dữ liệu định kỳ và các sự kiện cảnh báo khẩn cấp lên MQTT Broker Mosquitto với độ trễ thấp và cơ chế LWT (Last Will and Testament).
 - **Lưu trữ dữ liệu an toàn & bền vững:** Quản lý danh mục thiết bị, chuỗi thời gian cảm biến và nhật ký sự cố trên cơ sở dữ liệu SQLite tối ưu chế độ WAL.
@@ -36,7 +36,7 @@ Dự án **SMART AIoT SECURITY** được nghiên cứu và phát triển nhằm
 ## 3. PHÂN TÍCH YÊU CẦU HỆ THỐNG
 
 ### 3.1. Yêu cầu chức năng (Functional Requirements - FR):
-- **FR-01 (Đọc cảm biến):** ESP32 phải lấy mẫu liên tục từ 6 module cảm biến với các bộ lọc khử nhiễu (EMA cho gas, Median 5 mẫu cho siêu âm, Peak-to-Peak 50ms cho âm thanh).
+- **FR-01 (Đọc cảm biến):** ESP32 phải lấy mẫu liên tục từ 6 module cảm biến với các bộ lọc khử nhiễu (Median 5 mẫu cho siêu âm, Peak-to-Peak 50ms cho âm thanh).
 - **FR-02 (Cảnh báo biên):** Tự động kích hoạt còi/đèn khi vượt ngưỡng an toàn; duy trì tối thiểu 3000ms để chống rung nhiễu (anti-chattering).
 - **FR-03 (Đóng gói MQTT):** Gửi dữ liệu cảm biến định kỳ mỗi 3 giây lên topic `aiot/security/sensors` theo đúng cấu trúc JSON 8 trường đã chuẩn hóa.
 - **FR-04 (Kiểm duyệt Backend):** Backend FastAPI phải xác thực kiểu dữ liệu của mọi gói tin MQTT thông qua Pydantic Schema trước khi lưu trữ.
@@ -189,7 +189,7 @@ Giao diện được phát triển bằng **React 18** và **Vite**, tuân thủ
 1. **Header điều khiển:** Logo thương hiệu, Hộp chọn trạm ESP32 (`device_id`), Các viên thuốc chỉ báo trạng thái (Backend Online, MQTT Broker OK) và nút Làm mới tức thì.
 2. **5 Tab chức năng điều hướng:**
    - *Tab Tổng quan:* Lưới 7 thẻ cảm biến thời gian thực, hiển thị trạng thái an toàn/cảnh báo bằng màu sắc và thanh đo Anomaly Score AI.
-   - *Tab Biểu đồ:* 3 biểu đồ Recharts chuyên sâu (Nhiệt độ & Độ ẩm 2 trục Y, Khí gas & Âm thanh dạng Area, Khoảng cách dạng Area) kèm bộ lọc 15 - 100 điểm mẫu.
+   - *Tab Biểu đồ:* 3 biểu đồ Recharts chuyên sâu (Nhiệt độ & Độ ẩm 2 trục Y & Âm thanh dạng Area, Khoảng cách dạng Area) kèm bộ lọc 15 - 100 điểm mẫu.
    - *Tab Cảnh báo & AI:* Phân tách độc lập giữa Bảng cảnh báo theo ngưỡng vật lý (SQLite) và Bảng nhận định ngoại lai AI (RAM cache).
    - *Tab Lịch sử:* Bảng tra cứu chuỗi thời gian kèm ô tìm kiếm nhanh theo từ khóa/thời gian.
    - *Tab Quản lý thiết bị:* Danh sách trạm ESP32 và trạng thái Online/Offline.
